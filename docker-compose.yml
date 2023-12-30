@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  observer:
+    image: observer:2.0
+    build:
+      context: ./observer
+      dockerfile: Dockerfile
+    entrypoint: ['sh','entrypoint.sh']
+    ports:
+      - "5000:5000"
+    networks:
+      - kraft_network
+    volumes:
+      - ./observer:/code
+
+  controller:
+    image: controller:2.0
+    build: 
+      context: ./controllers 
+      dockerfile: Dockerfile
+    entrypoint: ['sh','entrypoint.sh']
+    networks:
+      - kraft_network
+    volumes:
+      - ./controllers:/code
+    depends_on:
+      - observer
+
+  broker:
+    image: broker:2.0
+    build: 
+        context: ./brokers
+        dockerfile: Dockerfile
+    entrypoint: ['sh','entrypoint.sh']
+    networks:
+      - kraft_network
+    volumes:
+      - ./brokers:/code
+    depends_on:
+      - controller
+
+networks:
+  kraft_network:
