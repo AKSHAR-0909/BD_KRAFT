@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <body>
+        <h1>H=OBSERVER</h1>
+        <div id="mapController">
+
+        </div>
+    </body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+    <script>
+        var mapController={}
+        var socket=io.connect('http://'+document.domain+":"+location.port)
+        socket.on("index",(data)=>{
+            var ip =data['ip']
+            var timer=data['counter']
+            console.log(ip,typeof(ip),timer,typeof(timer))
+            if(ip in mapController){
+                mapController[ip].timerInfo.textContent=timer
+            }
+            else{
+                var newController=document.createElement("div")
+                var ipInfo=document.createElement("p")
+                var timerInfo=document.createElement("p")
+
+                ipInfo.textContent = `IP: ${ip}`;
+                timerInfo.textContent = `Timer: ${timer}`;
+                newController.appendChild(ipInfo)
+                newController.appendChild(timerInfo)
+
+                document.getElementById("mapController").appendChild(newController)
+
+                mapController[ip] = {
+                    div: newController,
+                    ipInfo: ipInfo,
+                    timerInfo: timerInfo
+                };
+            }
+
+
+        })
+    </script>
+</html>
