@@ -16,7 +16,6 @@ class Node:
         self.fellow_ip = fellow_ip
         self.term = 0       #Indicated the number of times a leader has been elected
         self.state = FOLLOWER
-        self.timer = 0
         self.timeout_thread = None
         self.election_time = None
         self.votes = 0
@@ -24,7 +23,8 @@ class Node:
 
     #resetting the timeout everytime
     def reset_timeout(self):
-         return time.time()+random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/1000
+
+        return time.time()+random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/1000
        
     
     def init_timeout(self):
@@ -51,7 +51,8 @@ class Node:
         self.init_timeout()
         self.ask_votes()
 
-
+    def ask_votes(self):
+        pass
 
 Node(100,[200,300,500])
 
