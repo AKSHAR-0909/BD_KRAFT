@@ -24,7 +24,7 @@ class Node:
 
     #resetting the timeout everytime
     def reset_timeout(self):
-         return time.time()+random.randint(150,300)/1000
+         return time.time()+random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/1000
        
     
     def init_timeout(self):
