@@ -1,7 +1,8 @@
 import threading
 import time
-import random
+import random, requests
 
+HEARTBEAT_TIME = 140
 MIN_TIMEOUT = 150
 MAX_TIMEOUT = 300
 FOLLOWER  = 0
@@ -20,38 +21,61 @@ class Node:
         self.election_time = None
         self.votes = 0
         self.current_leader = None
+        self.heartbeat_time = None
         self.init_timeout()
 
     #resetting the timeout everytime
     def reset_timeout(self):
         self.election_time =  time.time()+random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/1000
+        # assuming last heartbeat was sent some random time ago
+        self.heartbeat_time = time.time() - random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/1000    
         return
        
     #  Initilises the timeout and creates a timeout thread initially
-
     def init_timeout(self):
         self.reset_timeout()
+        if not (self.timeout_thread and self.timeout_thread.is_alive()):
+            self.timeout_thread = threading.Thread(target=self.check_timeout,args=())
+            self.timeout_thread.start()
 
-        if self.timeout_thread and self.timeout_thread.is_alive():
-            return
+        if self.heartbeat_thread and self.heartbeat_thread.is_alive():
+            return 
+        
+        if self.state==FOLLOWER:
+            self.heartbeat_thread = threading.Thread(target=self.receive_heartbeat, args=())
+            self.heartbeat_thread.start()
 
-        self.timeout_thread = threading.Thread(target=self.check_timeout,args=())
-        self.timeout_thread.start()
 
-    #It constantly checks whether the node has timed out or not
+    def receive_heartbeat(self):
+        while self.state == FOLLOWER:
+            # checking heartbeat time by follower
+            if time.time()-self.heartbeat_time>HEARTBEAT_TIME:
+                self.start_election()
+
+            else:
+                time.sleep(self.election_time-time.time())
+            # RECEIVE HEARTBEAT SOMEHOW AND ASSIGN THAT TO DATA HERE
+            data = {"leader_ip": self.fellow_ips[1], "timestamp":time.time()}   # test data
+            self.heartbeat_time = data['timestamp']
+            time.sleep(HEARTBEAT_TIME)
+
+
+
+    # It constantly checks whether the node has timed out or not
     # Implemented as thread so as to run it parallely
     def check_timeout(self):
-
         while self.state==FOLLOWER:
             if time.time()-self.election_time>0:
-                self.start_Election()
+                self.start_election()
+        
+
             else:
                 time.sleep(self.election_time-time.time())
 
             
-    #This function starts the election as soon as a node has timed out
+    # This function starts the election as soon as a node has timed out
     # from the init timeout function
-    def start_Election(self):
+    def start_election(self):
         self.term += 1
         self.votes = 1
         self.state = CANDIDATE
@@ -74,7 +98,18 @@ class Node:
                 self.start_heartbeat()
         return
      
-
+    # send heartbeat to followers
+    def start_heartbeat(self):
+        while self.state == LEADER:
+            # sending heartbeat from leader in the form of leader_ip, timestamp
+            data={"leader_ip":self.my_ip, "timestamp":time.time()}
+            for f_ip in self.fellow_ips:
+                print("sent",data,"to","bd_kraft-follower:")
+                requests.post(f"FOLLOWER_IP/{f_ip}",json=data,headers={"Content-Type": "application/json"})
+            print(f"Heartbeat sent by Leader {self.my_ip}")
+            time.sleep(HEARTBEAT_TIME)
+        
+    
          
 
 Node(100,[200,300,500])
