@@ -23,7 +23,7 @@ class Node:
         self.votes = 0
         self.current_leader = None
         self.heartbeat_thread = None
-        self.voting_lock - threading.Lock()
+        self.voting_lock = threading.Lock()
         self.election_lock = threading.Lock()
         self.init_timeout()
 
@@ -49,15 +49,28 @@ class Node:
             self.heartbeat_thread.start()
 
 
+    # making this uniform to receive both heartbeats and vote requests
     def receive_heartbeat(self):
             # RECEIVE HEARTBEAT SOMEHOW AND ASSIGN THAT TO DATA HERE
-            # data = requests.get()
-            if self.state == FOLLOWER:
-                data = {"leader_ip": self.fellow_ips[1], "timestamp":time.time()}    # test data
-                print("received heartbeat", data)
-                self.last_msg_time = data['timestamp']
+            while self.state == FOLLOWER:
+                # data = requests.get_json()
+                data = { "type":"HeartbeatMsg",
+                    "fields":{"leader_ip": self.fellow_ips[1], "timestamp":time.time()}}   # test data
+                if data['type']=="HeartbeatMsg":
+                    print("Received heartbeat", data)
+
+                if data['type']=="VoteMsg":
+                    print("Vote asked by", data['fields']['node'])  
+                    self.vote(data['fields'])
+                
+                self.last_msg_time = time.time()
                 time.sleep(TIMEOUT_TIME)
 
+    def vote(self, data):
+        if self.term>data['term']:
+            print("Respond with false. No vote. Maybe status code 404 or something")
+        else:
+            print("status code 200")
 
 
     # It constantly checks whether the node has timed out or not
@@ -89,9 +102,11 @@ class Node:
         # self.init_timeout()
         if self.state == CANDIDATE:
             data = {
+                "type":"VoteMsg",
+                "fields":{
                 "node":self.my_ip,
                 "term":self.term,
-                "message":"asking for vote"
+                "message":"asking for vote"}
             }
             for f_ip in self.fellow_ips:
                threading.Thread(target=self.sending_vote_req,args=(f_ip,data)).start()
@@ -121,7 +136,11 @@ class Node:
     def start_heartbeat(self):
         while self.state == LEADER:
             # sending heartbeat from leader in the form of leader_ip, timestamp
-            data={"leader_ip":self.my_ip, "timestamp":time.time()}
+            data={
+                "type":"HeartbeatMsg",
+                "fields":{
+                "leader_ip":self.my_ip, "timestamp":time.time()}
+                }
             for f_ip in self.fellow_ips:
                 print("sent",data,"to","bd_kraft-follower:")
                 requests.post(f"FOLLOWER_IP/{f_ip}",json=data,headers={"Content-Type": "application/json"})
