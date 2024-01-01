@@ -53,9 +53,10 @@ class Node:
     def receive_heartbeat(self):
             # RECEIVE HEARTBEAT SOMEHOW AND ASSIGN THAT TO DATA HERE
             while self.state == FOLLOWER:
-                # data = requests.get_json()
-                data = { "type":"HeartbeatMsg",
-                    "fields":{"leader_ip": self.fellow_ips[1], "timestamp":time.time()}}   # test data
+                data = requests.get_json()
+                # data = { "type":"HeartbeatMsg",
+                #     "fields":{"leader_ip": self.fellow_ips[1], "timestamp":time.time()}}   # test data
+                
                 if data['type']=="HeartbeatMsg":
                     print("Received heartbeat", data)
 
@@ -66,8 +67,10 @@ class Node:
                 self.last_msg_time = time.time()
                 time.sleep(TIMEOUT_TIME)
 
+
     def vote(self, data):
         if self.term>data['term']:
+            # requests.post(f"http://bd_kraft-controllers-{data['node']}:5000/timer",,timeout = REQUEST_TIMEOUT)
             print("Respond with false. No vote. Maybe status code 404 or something")
         else:
             print("status code 200")
@@ -112,9 +115,10 @@ class Node:
                threading.Thread(target=self.sending_vote_req,args=(f_ip,data)).start()
         return
 
-    def sending_vote_req(self,ip,data):
+    def sending_vote_req(self,i,data):
         if self.state == CANDIDATE:
-            res = requests.post(f"FOLLOWER_IP/{ip}",json=data,headers={"Content-Type": "application/json"},timeout = REQUEST_TIMEOUT)
+            res = requests.post(f"http://bd_kraft-controllers-{i}:5000/",json=data,headers={"Content-Type": "application/json"},timeout = REQUEST_TIMEOUT)
+
             if res:
                 self.increment_vote()
         return
@@ -150,7 +154,7 @@ class Node:
     
          
 
-Node(100,[200,300,500])
+Node(0,[1,2,3])
 
         
     
