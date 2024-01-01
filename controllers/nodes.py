@@ -8,6 +8,7 @@ MAX_TIMEOUT = 300
 FOLLOWER  = 0
 CANDIDATE = 1
 LEADER = 2
+REQUEST_TIMEOUT = 50
 
 class Node:
     
@@ -22,6 +23,7 @@ class Node:
         self.votes = 0
         self.current_leader = None
         self.heartbeat_thread = None
+        self.voting_lock - threading.Lock()
         self.election_lock = threading.Lock()
         self.init_timeout()
 
@@ -50,10 +52,11 @@ class Node:
     def receive_heartbeat(self):
             # RECEIVE HEARTBEAT SOMEHOW AND ASSIGN THAT TO DATA HERE
             # data = requests.get()
-            data = {"leader_ip": self.fellow_ips[1], "timestamp":time.time()}   # test data
-            print("received heartbeat", data)
-            self.last_msg_time = data['timestamp']
-            time.sleep(TIMEOUT_TIME)
+            if self.state == FOLLOWER:
+                data = {"leader_ip": self.fellow_ips[1], "timestamp":time.time()}   # test data
+                print("received heartbeat", data)
+                self.last_msg_time = data['timestamp']
+                time.sleep(TIMEOUT_TIME)
 
 
 
@@ -84,16 +87,32 @@ class Node:
         # TODO: vote timeout
         # self.state = FOLLOWER
         # self.init_timeout()
-        pass
+        if self.state == CANDIDATE:
+            data = {
+                "node":self.my_ip,
+                "term":self.term,
+                "message":"asking for vote"
+            }
+            for f_ip in self.fellow_ips:
+               threading.Thread(target=self.sending_vote_req,args=(f_ip,data)).start()
+        return
+
+    def sending_vote_req(self,ip,data):
+        if self.state == CANDIDATE:
+            res = requests.post(f"FOLLOWER_IP/{ip}",json=data,headers={"Content-Type": "application/json"},timeout = REQUEST_TIMEOUT)
+            if res:
+                self.increment_vote()
+        return
 
     def increment_vote(self):
-        self.votes += 1
-        if self.state == CANDIDATE:
-            if(self.votes>=(len(self.fellow_ips)+1)//2):
-                self.state = LEADER
-                self.current_leader = self.my_ip
-                print(f"Leader Elected: {self.my_ip}")
-                threading.Thread(self.start_heartbeat()).start()
+        with self.voting_lock:
+            self.votes += 1
+            if self.state == CANDIDATE:
+                if(self.votes>=(len(self.fellow_ips)+1)//2):
+                    self.state = LEADER
+                    self.current_leader = self.my_ip
+                    print(f"Leader Elected: {self.my_ip}")
+                    threading.Thread(self.start_heartbeat()).start()
         return
      
     # send heartbeat to followers
@@ -104,6 +123,8 @@ class Node:
             for f_ip in self.fellow_ips:
                 print("sent",data,"to","bd_kraft-follower:")
                 requests.post(f"FOLLOWER_IP/{f_ip}",json=data,headers={"Content-Type": "application/json"})
+                #should make this a thread because heartbeats must be send parallely
+
             print(f"Heartbeat sent by Leader {self.my_ip}")
             time.sleep(TIMEOUT_TIME)
         
