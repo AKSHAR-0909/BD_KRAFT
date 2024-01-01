@@ -22,6 +22,7 @@ class Node:
         self.votes = 0
         self.current_leader = None
         self.heartbeat_time = None
+        self.election_lock = threading.Lock()
         self.init_timeout()
 
     #resetting the timeout everytime
@@ -38,7 +39,7 @@ class Node:
             self.timeout_thread = threading.Thread(target=self.check_timeout,args=())
             self.timeout_thread.start()
 
-        if self.heartbeat_thread and self.heartbeat_thread.is_alive():
+        if self.state==FOLLOWER and self.heartbeat_thread and self.heartbeat_thread.is_alive():
             return 
         
         if self.state==FOLLOWER:
@@ -76,13 +77,14 @@ class Node:
     # This function starts the election as soon as a node has timed out
     # from the init timeout function
     def start_election(self):
-        self.term += 1
-        self.votes = 1
-        self.state = CANDIDATE
-        print("in election")
-        # print(self.timeout_thread.is_alive())
-        self.init_timeout()
-        self.ask_votes()
+        with self.election_lock:
+            self.term += 1
+            self.votes = 1
+            self.state = CANDIDATE
+            print("in election")
+            # print(self.timeout_thread.is_alive())
+            self.init_timeout()
+            self.ask_votes()
 
     #call increment vote from this function
     def ask_votes(self):
