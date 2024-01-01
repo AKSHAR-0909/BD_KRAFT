@@ -53,7 +53,7 @@ class Node:
             # RECEIVE HEARTBEAT SOMEHOW AND ASSIGN THAT TO DATA HERE
             # data = requests.get()
             if self.state == FOLLOWER:
-                data = {"leader_ip": self.fellow_ips[1], "timestamp":time.time()}   # test data
+                data = {"leader_ip": self.fellow_ips[1], "timestamp":time.time()}    # test data
                 print("received heartbeat", data)
                 self.last_msg_time = data['timestamp']
                 time.sleep(TIMEOUT_TIME)
@@ -96,6 +96,8 @@ class Node:
             for f_ip in self.fellow_ips:
                threading.Thread(target=self.sending_vote_req,args=(f_ip,data)).start()
         return
+
+    
 
     def sending_vote_req(self,ip,data):
         if self.state == CANDIDATE:
