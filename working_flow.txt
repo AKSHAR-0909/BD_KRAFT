@@ -1,0 +1,72 @@
+-The purpose of this document is to understand the flow of RAFT
+
+-The purpose of raft is to provide a distributed consensus system
+
+- First in the system there should be a leader , the initial term will be 0. If there 
+is no leader then the process of leader election takes place.
+
+~LEADER election
+
+    CASE 1:- Initally no leader elected
+
+    --  All the nodes will be FOLLOWERS , they will have a random timeout. 
+        The reason for the random timeout if to avoid all the nodes becoming candidate nodes.
+
+    -- The node which has the least timeout will be a candidate note. 
+
+    -- The candidate node now asks for vote requests to other nodes.
+
+    ~Voting process
+
+        ---The vote format should have 
+            {
+                term: the candidates term,
+                candidateID : candidates requesting vote,
+                lastLongIndex: index of candidates last log entry,
+                lastlogTerm : term of candidate's last log entry
+            }
+        
+        --- The votes are sent parallely to the fellow controller nodes.(Create threads)
+
+        --- The candidate votes for itself and increments its term and will not vote for any other candidate node.It
+            also resets its timeout.
+
+        --- The follower node will not vote for a candidate node if:
+
+            CASE 1: Follower_term > candidate_ term (Reason : might be crash)
+            CASE 2: If the candidate node's last log entry < Follower node's last log entry.
+
+        --- Other cases the follower will vote.
+        Vote response = {
+            term : current term for candidate to update itself,
+            voteGranted : true if voted else false
+        }
+
+        Note : If there are multiple candidate nodes , as soon as vote is granted the term is incremented and made equal 
+               to the term. (This is to avoid multiple vote grants)
+
+        --- In case the candidate node receives an appendEntry RPC (heartbeat) from the leader , it's state should be changed
+            to follower. 
+
+        Note: IF the term in RPC is smaller than the candidate , then reject the RPC and continue in candidate state.
+
+        --- In the case of vote split
+
+            ---- When this happens,each candidate will timeout and start a new election by incrementing
+                its term and initiating another round of RequestVoteRPCs.
+        
+        --- The candidate wins the election if it receives majority vote and becomes the leader.
+
+
+
+
+
+
+
+
+        
+
+        
+
+
+
