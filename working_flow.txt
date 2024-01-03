@@ -12,7 +12,7 @@ is no leader then the process of leader election takes place.
     --  All the nodes will be FOLLOWERS , they will have a random timeout. 
         The reason for the random timeout if to avoid all the nodes becoming candidate nodes.
 
-    -- The node which has the least timeout will be a candidate note. 
+    -- The node which has the least timeout will be a candidate node. 
 
     -- The candidate node now asks for vote requests to other nodes.
 
@@ -45,10 +45,10 @@ is no leader then the process of leader election takes place.
         Note : If there are multiple candidate nodes , as soon as vote is granted the term is incremented and made equal 
                to the term. (This is to avoid multiple vote grants)
 
-        --- In case the candidate node receives an appendEntry RPC (heartbeat) from the leader , it's state should be changed
+        --- In case the candidate node receives an appendEntry RPC (heartbeat) from the leader, it's state should be changed
             to follower. 
 
-        Note: IF the term in RPC is smaller than the candidate , then reject the RPC and continue in candidate state.
+        Note: If the term in RPC is smaller than the candidate , then reject the RPC and continue in candidate state.
 
         --- In the case of vote split
 
@@ -57,6 +57,37 @@ is no leader then the process of leader election takes place.
         
         --- The candidate wins the election if it receives majority vote and becomes the leader.
 
+~ AppendEntries
+    - Log is like a list of changes. To change anything, find its index and modify. (see image in page 7 of paper)
+    - Leader sends to all followers, in parallel threads:
+    {
+        term : leader's term (if any follower or other leader has lower term, it should update itself),
+        leaderID,
+        prevLogIndex : position of the entry after which the new data will be added,
+        prevLogTerm : the term in which the last entry was previously added or changed,
+        entries : list of new entries (index starts from prevLogIndex+1), this is empty if heartbeat
+    }
+
+    - Followers receive this and reply with:
+    {
+        success : false / true (conditions below),
+        term : currentTerm (because leader can use it if it is lagging behind in term)
+    }
+    Result if false if: 
+        a. the term > leaderTerm
+        b. there is no entry at prevLogIndex at prevLogTerm (even if term at prevLogIndex is lesser, this means something is wrong)
+
+    If result is true, follower 
+
+    If leader receives term > its term, go to follower state
+
+    Whenever a new leader is elected, prevLogIndex = the last log index in leader and nextIndex = prevLogIndex + 1
+    -- "If a follower’s log is inconsistent with the leader’s, the AppendEntries consistency check will fail in the next AppendEntries RPC. 
+        After a rejection, the leader decrements nextIndex and retries the AppendEntries RPC. 
+        Eventually nextIndex will reach a point where the leader and follower logs match."
+    --[To optimise, the follower can also send back the term of conflicting entry and the first index that stores that term.]
+    --From this, all next log entries are appended to follower.
+    
 
 
 
