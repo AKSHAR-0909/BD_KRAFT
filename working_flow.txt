@@ -91,6 +91,27 @@ is no leader then the process of leader election takes place.
 
 
 
+# Safety
+Make sure that the new leader for a new term always starts with all the entries that are committed in previous terms.
+
+    ## Election restrictions
+        - A candidate cannot win an election unless its logs contains all committed entries. 
+        - A candidate can win an election iff its log is at least as up-to-date with any other log from the majority that it ask the vote from.
+        - to determine up-to-dateness of 2 logs use index and term of the last entries in the logs. If the logs have last entries with different terms, then the log with the later term is more up-to-date. If the logs end with the same term, then whichever log is longer is more up-to-date.
+
+    ## Committing previous term entries entries
+        - the paper also talks about a situation where an old log entry is stored on a majority of servers, yet can still be overwritten by a future leader.
+        The entries from the previous terms will not be replicated and hence committed and instead raft only commits log entries from the leader's current term . 
+
+    ## Failover of candidates and crashes
+        - AppendEntriesRPC will fail. Retry indefinitely till follower is fixed and responds to the RPC.
+
+    ## Timing and Availability
+        - Most important condition - 
+        broadcastTime<< electionTimeout<< MTBF 
+
+        - if broadcastTime > electionTimeout too many followers become candidates and start elections unnecessarily.
+
 
 
 
