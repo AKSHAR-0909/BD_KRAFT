@@ -48,7 +48,7 @@ is no leader then the process of leader election takes place.
         --- In case the candidate node receives an appendEntry RPC (heartbeat) from the leader, it's state should be changed
             to follower. 
 
-        Note: If the term in RPC is smaller than the candidate , then reject the RPC and continue in candidate state.
+        Note: If the term in AppendEntriesRPC is smaller than the candidate , then reject the RPC and continue in candidate state.
 
         --- In the case of vote split
 
