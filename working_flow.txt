@@ -58,8 +58,8 @@ is no leader then the process of leader election takes place.
         --- The candidate wins the election if it receives majority vote and becomes the leader.
 
 ~ AppendEntries
-    - Log is like a list of changes. To change anything, find its index and modify. (see image in page 7 of paper)
-    - Leader sends to all followers, in parallel threads:
+    - Log is like a list of changes. To add stuff, find last index that things were added to, and add after this. (see image in page 7 of paper)
+    - Leader sends AppendEntries to all followers, in parallel threads:
     {
         term : leader's term (if any follower or other leader has lower term, it should update itself),
         leaderID,
@@ -85,8 +85,8 @@ is no leader then the process of leader election takes place.
     -- "If a follower’s log is inconsistent with the leader’s, the AppendEntries consistency check will fail in the next AppendEntries RPC. 
         After a rejection, the leader decrements nextIndex and retries the AppendEntries RPC. 
         Eventually nextIndex will reach a point where the leader and follower logs match."
-    --[To optimise, the follower can also send back the term of conflicting entry and the first index that stores that term.]
-    --From this, all next log entries are appended to follower.
+    -- [To optimise, the follower can also send back the term of conflicting entry and the first index that stores that term.]
+    -- From this, all next log entries are appended to follower.
     
 
 
