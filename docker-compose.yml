@@ -26,6 +26,8 @@ services:
       - ./controllers:/code
     depends_on:
       - observer
+    environment:
+      - controller_index=1
 
   broker:
     image: broker:2.0
