@@ -23,6 +23,7 @@ class Node:
         self.state = FOLLOWER
         self.timeout_thread = None
         self.election_time = None
+        self.voted_for = {"term":None , "candidateId":None}
         self.votes = 0
         self.current_leader = None
         self.heartbeat_thread = None
@@ -30,10 +31,15 @@ class Node:
         self.election_lock = threading.Lock()
         self.leader_log_lock = threading.Lock()
         self.log_file = log_file
-        self.next_index = [0 for _ in range(len(self.node_list))]  #adding next index , initializing it 0 as of now
+        self.next_index = {}  #adding next index , initializing it 0 as of now
+        self._initialize_next_index()
+
         self.match_index = [0 for _ in range(len(self.node_list))] # same reason
         self.init_timeout()
 
+    def _initialize_next_index(self):
+        for ips in self.node_list:
+            self.next_index[ips] = 0
     #resetting the timeout everytime
     def reset_timeout(self):
         # self.election_time =  time.time()+random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/1000
@@ -77,13 +83,6 @@ class Node:
                 time.sleep(100)
 
 
-    def vote_repsonse_rpc(self, data):
-        if self.term>data['term']:
-            # requests.post(f"http://bd_kraft-controllers-{data['node']}:5000/timer",,timeout = REQUEST_TIMEOUT)
-            print("Respond with false. No vote. Maybe status code 404 or something")
-        else:
-            print("status code 200")
-
 
     # It constantly checks whether the node has timed out or not
     # Implemented as thread so as to run it parallely
@@ -104,7 +103,6 @@ class Node:
             print(f"in election : {self.my_ip} is candidate now!!!")
             self._transition_to_candidate() # to maintian modularity
             self.votes = 0
-
             self.increment_vote()
             self.vote_request_rpc(self.term) #safe to pass
 
@@ -118,7 +116,7 @@ class Node:
             data = {
                 "term":self.term,
                 "candidateId":self.my_ip,
-                "lastLogIndex" : self.next_index[self.my_ip-1]-1,
+                "lastLogIndex" : self.next_index[self.my_ip]-1,
                 "lastLogTerm" : self.log_file[self.next_index[self.my_ip]-1]
                 }
             
@@ -126,18 +124,19 @@ class Node:
                 if self.my_ip != f_ip:
                     threading.Thread(target=self.sending_vote_req,args=(f_ip,data)).start()
         return
+    
 
     def sending_vote_req(self,i,data):
         turn = 0
         res = None
         while not res and turn<3:
             try:
-                res = requests.post(f"http://bd_kraft-controllers-{i}:5000/",json=data,headers={"Content-Type": "application/json"},timeout = REQUEST_TIMEOUT)
+                res = requests.post(f"http://bd_kraft-controllers-{i}:5000/vote_Req",json=data,headers={"Content-Type": "application/json"},timeout = REQUEST_TIMEOUT)
                 if res['VoteGranted']:
                     self.increment_vote()
                     break
             except Exception as e:
-                print(f"Vote request to {i} by candidate {self.my_ip} failed")
+                print(f"Vote request to {i} by candidate {self.my_ip} failed!!!")
                 turn += 1
 
         return
@@ -152,6 +151,31 @@ class Node:
                     # threading.Thread(self.start_heartbeat()).start()
         return
      
+    def vote_response_rpc(self,data):
+        if self.term > data['term']: # if the follower term > candidate
+                return {
+                    "term" : self.term,
+                    "voteGranted" : False
+                }
+        elif  self.voted_for['term']==self.term:
+            return {
+                    "term" : self.term,
+                    "voteGranted" : False
+            }
+        elif self.next_index[self.my_ip]-1 > data['lastLogIndex']:
+            return {
+                    "term" : self.term,
+                    "voteGranted" : False
+                }
+        else:
+            self.voted_for['term'] = data['term']
+            self.voted_for['candidateId'] = data['candidateId']
+            return {
+                "term":self.term,
+                "voteGranted":True
+            }
+        
+
     # send heartbeat to followers
     def start_heartbeat(self):
         while self.state == LEADER:
