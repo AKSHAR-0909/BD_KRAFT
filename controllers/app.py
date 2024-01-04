@@ -1,26 +1,21 @@
-from flask import Flask
-import threading 
-import time
-import requests
+from nodes import *
 import socket
+from flask import Flask,request
+import requests
+
 
 app=Flask("__name__")
-ip =socket.gethostbyname(socket.gethostname())
+my_ip=socket.gethostbyname(socket.gethostname())
+fellow_ips=[my_ip[:-1]+str(i) for i in range(3,6)]
 
-time.sleep(5)
 
-def startTimeout():
-    counter=50
-    while(counter>0):
-        data={"ip":ip,"counter":counter}
-        print("sent",data,"to","bd_kraft-observer:5000")
-        requests.post("http://bd_kraft-observer-1:5000/timer",json=data,headers={"Content-Type": "application/json"})
-        counter-=0.05
-timer=threading.Thread(target=startTimeout)
-timer.start()
-
+Node(my_ip,fellow_ips,"log.txt")
 
 @app.route("/")
 def index():
     return "<h1>Hello from Controller</h1>"
 
+@app.route("vote_Req")
+def voteReq():
+    data=request.get_json()
+    

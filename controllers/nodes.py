@@ -44,7 +44,7 @@ class Node:
     def reset_timeout(self):
         # self.election_time =  time.time()+random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/1000
         # assuming last message was sent some random time ago
-        self.last_msg_time = time.time() - random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/1000    
+        self.last_msg_time = time.time() + random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/10
         return
        
     #  Initilises the timeout and creates a timeout thread initially
@@ -92,7 +92,9 @@ class Node:
             if time.time()-self.last_msg_time>=0:
                 self.start_election()
             else:
-                time.sleep((time.time()-self.last_msg_time)/1000)
+                # time.sleep((time.time()-self.last_msg_time)/1000)
+                data={"ip":self.my_ip,"counter":-(time.time()-self.last_msg_time)}
+                requests.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
 
 
             
@@ -118,7 +120,7 @@ class Node:
                 "candidateId":self.my_ip,
                 "lastLogIndex" : self.next_index[self.my_ip]-1,
                 "lastLogTerm" : self.log_file[self.next_index[self.my_ip]-1]
-                }
+            }
             
             for f_ip in self.node_list:
                 if self.my_ip != f_ip:
@@ -131,7 +133,7 @@ class Node:
         res = None
         while not res and turn<3:
             try:
-                res = requests.post(f"http://bd_kraft-controllers-{i}:5000/vote_Req",json=data,headers={"Content-Type": "application/json"},timeout = REQUEST_TIMEOUT)
+                res = requests.post(f"http://bd_kraft-controller-{i}:5000/vote_Req",json=data,headers={"Content-Type": "application/json"},timeout = REQUEST_TIMEOUT)
                 if res['VoteGranted']:
                     self.increment_vote()
                     break
@@ -206,7 +208,7 @@ class Node:
         
 
 
-Node(1,[1,2,3])
+# Node(1,[1,2,3])
 
 
 
