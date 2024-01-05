@@ -1,0 +1,33 @@
+#mapController {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    /* background-color: #555; */
+}
+  
+.mapControllerDiv {
+    border: 1px solid black;
+    border-radius: 8px;
+    padding: 10px;
+    margin: 10px;
+    width: 40%;
+    text-align: center;
+    transition: transform 0.3s ease; 
+}
+
+.mapControllerDiv p {
+    margin: 5px 0;
+}
+
+.mapControllerDiv p:first-child {
+    font-weight: bold;
+    color: #333;
+}
+
+.mapControllerDiv p:last-child {
+    color: #555;
+}
+  
+.highlightedLeader {
+    transform: scale(1.1); /* Change the scale factor to your desired value */
+}

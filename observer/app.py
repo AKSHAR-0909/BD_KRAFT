@@ -8,8 +8,20 @@ socketio=SocketIO(app)
 def index():
     return render_template("index.html")
 
-@app.route("/update",methods=['POST'])
-def timer():
+@app.route("/updateTimer",methods=['POST'])
+def updateTimer():
     data=request.get_json()
     socketio.emit("index",data)
     return render_template("index.html")
+
+@app.route("/transitionToCandidate",methods=['POST'])
+def handleCandidate():
+    data=request.get_json()
+    socketio.emit("transitionToCandidate",data)
+    return "Hello"
+
+@app.route("/transitionToLeader",methods=['POST'])
+def handleLeader():
+    data=request.get_json()
+    socketio.emit("transitionToLeader",data)
+    return "Hello"

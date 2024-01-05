@@ -6,8 +6,8 @@ from math import ceil
 # TIMEOUT_TIME = 200 ,the reason for removing this is that 
 # in case all the hearbeats are sent parallely and leader dies ,
 # then every node would time out at the same time and all would become candidates in check timeout
-MIN_TIMEOUT = 150
-MAX_TIMEOUT = 300
+MIN_TIMEOUT = 50
+MAX_TIMEOUT = 200
 FOLLOWER  = 0
 CANDIDATE = 1
 LEADER = 2
@@ -19,6 +19,7 @@ class Node:
         
         self.my_ip = my_ip # the node's its own ip
         self.node_list = node_list
+        self.ip_list=[my_ip[:-1]+str(i) for i in range(3,6)]
         self.term = 0       #Indicated the number of times a leader has been elected
         self.state = FOLLOWER
         self.timeout_thread = None
@@ -44,7 +45,7 @@ class Node:
     def reset_timeout(self):
         # self.election_time =  time.time()+random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/1000
         # assuming last message was sent some random time ago
-        self.last_msg_time = time.time() - random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/1000    
+        self.last_msg_time = time.time() + random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/10    
         return
        
     #  Initilises the timeout and creates a timeout thread initially
@@ -76,7 +77,8 @@ class Node:
             if time.time()-self.last_msg_time>=0:
                 self.start_election()
             else:
-                time.sleep((time.time()-self.last_msg_time)/1000)
+                data={"ip":self.my_ip,"counter":abs(time.time()-self.last_msg_time)}
+                requests.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
 
 
             
@@ -115,11 +117,14 @@ class Node:
         res = None
         while not res and turn<3:
             try:
-                res = requests.post(f"http://bd_kraft-controller-{i}:5000/vote_Req",json=data,headers={"Content-Type": "application/json"},timeout = REQUEST_TIMEOUT)
-                if res['VoteGranted']:
+                res = requests.post(f"http://{i}:5000/vote_Req",json=data,headers={"Content-Type": "application/json"})
+                res=res.json()
+                if res['voteGranted']:
+                    # print("incrementing vote from  votes = ",self.votes)
                     self.increment_vote()
                     break
             except Exception as e:
+                print(e)
                 print(f"Vote request to {i} by candidate {self.my_ip} failed!!!")
                 turn += 1
 
@@ -128,6 +133,7 @@ class Node:
     def increment_vote(self):
         with self.voting_lock:
             self.votes += 1
+            print("votes = ",self.votes)
             if self.state == CANDIDATE:
                 if(self.votes>=ceil((len(self.node_list))/2)):
                     self._transition_to_leader()
@@ -136,28 +142,9 @@ class Node:
         return
      
     def vote_response_rpc(self,data):
-        if self.term > data['term']: # if the follower term > candidate
-                return {
-                    "term" : self.term,
-                    "voteGranted" : False
-                }
-        elif  self.voted_for['term']==self.term:
-            return {
-                    "term" : self.term,
-                    "voteGranted" : False
-                }
-        elif self.next_index[self.my_ip]-1 > data['lastLogIndex']:
-            return {
-                    "term" : self.term,
-                    "voteGranted" : False
-                }
-        else:
-            self.voted_for['term'] = data['term']
-            self.voted_for['candidateId'] = data['candidateId']
-            return {
-                "term":self.term,
-                "voteGranted":True
-            }
+        #code here has been moved to app.py at the endpoint vote_Req
+        pass 
+        
         
     def startHearbeat(self):
             
@@ -166,11 +153,15 @@ class Node:
 
     def _transition_to_candidate(self):
         print(f"{self.my_ip} - Transition to CANDIDATE")
+        data={"candidateIP":self.my_ip}
+        requests.post("http://bd_kraft-observer-1:5000/transitionToCandidate",json=data,headers={"Content-Type": "application/json"})
         self.state = CANDIDATE
         self.term += 1
 
     def _transition_to_leader(self):
         print(f"{self.my_ip} Transition to LEADER")
+        data={"leaderIP":self.my_ip}
+        requests.post("http://bd_kraft-observer-1:5000/transitionToLeader",json=data,headers={"Content-Type": "application/json"})
         self.state = LEADER
         self.current_leader = self.my_ip
 

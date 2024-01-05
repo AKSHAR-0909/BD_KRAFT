@@ -4,6 +4,8 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Document</title>
+        <link rel="stylesheet" type="text/css" href="../static/styles/index.css">
+
     </head>
     <body>
         <h1>OBSERVER</h1>
@@ -18,17 +20,24 @@
         socket.on("index",(data)=>{
             var ip =data['ip']
             var timer=data['counter']
-            console.log(ip,typeof(ip),timer,typeof(timer))
+            // console.log(ip,typeof(ip),timer,typeof(timer))
             if(ip in mapController){
                 mapController[ip].timerInfo.textContent=timer
             }
             else{
                 var newController=document.createElement("div")
+                newController.classList.add("mapControllerDiv"); // Add this line to add the class
+
+                var state=document.createElement("h2")
+                state.setAttribute("id","state")
                 var ipInfo=document.createElement("p")
                 var timerInfo=document.createElement("p")
 
+                state.textContent="FOLLOWER"
                 ipInfo.textContent = `IP: ${ip}`;
                 timerInfo.textContent = `Timer: ${timer}`;
+
+                newController.appendChild(state)
                 newController.appendChild(ipInfo)
                 newController.appendChild(timerInfo)
 
@@ -40,8 +49,24 @@
                     timerInfo: timerInfo
                 };
             }
+        })
 
+        socket.on("transitionToCandidate",(data)=>{
+            var candidateIP=data['candidateIP']
+            if( candidateIP in mapController){
+                console.log(candidateIP)
+                mapController[candidateIP].div.querySelector("#state").textContent="CANDIDATE";
 
+            }
+        })
+
+        socket.on("transitionToLeader",(data)=>{
+            var leaderIP=data['leaderIP']
+            if(leaderIP in mapController){
+                console.log(leaderIP)
+                mapController[leaderIP].div.querySelector("#state").textContent="LEADER"
+                mapController[leaderIP].div.classList.add("highlightedLeader")
+            }
         })
     </script>
 </html>
