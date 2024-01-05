@@ -44,7 +44,7 @@ class Node:
     def reset_timeout(self):
         # self.election_time =  time.time()+random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/1000
         # assuming last message was sent some random time ago
-        self.last_msg_time = time.time() + random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/10
+        self.last_msg_time = time.time() - random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/1000    
         return
        
     #  Initilises the timeout and creates a timeout thread initially
@@ -65,22 +65,6 @@ class Node:
 
 
     # making this uniform to receive both heartbeats and vote requests
-    def receive_heartbeat(self):
-            # RECEIVE HEARTBEAT SOMEHOW AND ASSIGN THAT TO DATA HERE
-            while self.state == FOLLOWER:
-                data = requests.get_json()
-                # data = { "type":"HeartbeatMsg",
-                #     "fields":{"leader_ip": self.fellow_ips[1], "timestamp":time.time()}}   # test data
-                
-                if data['type']=="HeartbeatMsg":
-                    print("Received heartbeat", data)
-
-                if data['type']=="VoteMsg":
-                    print("Vote asked by", data['fields']['node'])  
-                    self.vote(data['fields'])
-                
-                self.last_msg_time = time.time()
-                time.sleep(100)
 
 
 
@@ -92,9 +76,7 @@ class Node:
             if time.time()-self.last_msg_time>=0:
                 self.start_election()
             else:
-                # time.sleep((time.time()-self.last_msg_time)/1000)
-                data={"ip":self.my_ip,"counter":-(time.time()-self.last_msg_time)}
-                requests.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
+                time.sleep((time.time()-self.last_msg_time)/1000)
 
 
             
@@ -163,7 +145,7 @@ class Node:
             return {
                     "term" : self.term,
                     "voteGranted" : False
-            }
+                }
         elif self.next_index[self.my_ip]-1 > data['lastLogIndex']:
             return {
                     "term" : self.term,
@@ -177,23 +159,7 @@ class Node:
                 "voteGranted":True
             }
         
-
-    # send heartbeat to followers
-    def start_heartbeat(self):
-        while self.state == LEADER:
-            # sending heartbeat from leader in the form of leader_ip, timestamp
-            data={
-                "type":"HeartbeatMsg",
-                "fields":{
-                "leader_ip":self.my_ip, "timestamp":time.time()}
-                }
-            for f_ip in self.fellow_ips:
-                print("sent",data,"to","bd_kraft-follower:")
-                requests.post(f"FOLLOWER_IP/{f_ip}",json=data,headers={"Content-Type": "application/json"})
-                #should make this a thread because heartbeats must be send parallely
-
-            print(f"Heartbeat sent by Leader {self.my_ip}")
-            time.sleep(10)
+    
 
     def _transition_to_candidate(self):
         print(f"{self.my_ip} - Transition to CANDIDATE")

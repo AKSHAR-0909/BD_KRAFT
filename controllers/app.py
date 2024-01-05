@@ -2,14 +2,23 @@ from nodes import *
 import socket
 from flask import Flask,request
 import requests
-
+import socket
 
 app=Flask("__name__")
-my_ip=socket.gethostbyname(socket.gethostname())
-fellow_ips=[my_ip[:-1]+str(i) for i in range(3,6)]
+ip =socket.gethostbyname(socket.gethostname())
 
+time.sleep(5)
 
-Node(my_ip,fellow_ips,"log.txt")
+def startTimeout():
+    counter=50
+    while(counter>0):
+        data={"ip":ip,"counter":counter}
+        print("sent",data,"to","bd_kraft-observer:5000")
+        requests.post("http://bd_kraft-observer-1:5000/timer",json=data,headers={"Content-Type": "application/json"})
+        counter-=0.05
+timer=threading.Thread(target=startTimeout)
+timer.start()
+
 
 @app.route("/")
 def index():
