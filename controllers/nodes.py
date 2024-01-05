@@ -39,7 +39,7 @@ class Node:
 
     def _initialize_next_index(self):
         for ips in self.node_list:
-            self.next_index[ips] = 0
+            self.next_index[ips] = len(self.log_file)
     #resetting the timeout everytime
     def reset_timeout(self):
         # self.election_time =  time.time()+random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/1000
@@ -108,7 +108,7 @@ class Node:
                 if self.my_ip != f_ip:
                     threading.Thread(target=self.sending_vote_req,args=(f_ip,data)).start()
         return
-    
+
 
     def sending_vote_req(self,i,data):
         turn = 0
@@ -159,6 +159,9 @@ class Node:
                 "voteGranted":True
             }
         
+    def startHearbeat(self):
+            
+        pass
     
 
     def _transition_to_candidate(self):
@@ -170,6 +173,11 @@ class Node:
         print(f"{self.my_ip} Transition to LEADER")
         self.state = LEADER
         self.current_leader = self.my_ip
+
+        with self.next_index_lock:
+            for ips in self.node_list:
+                self.next_index[ips] = len(self.log_file)
+        
 
         
 
