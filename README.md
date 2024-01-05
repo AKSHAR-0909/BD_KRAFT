@@ -2,9 +2,8 @@
 
 Run
 
-`docker-compose up -d`
+`docker-compose up -d --scale controller=<number_of_controllers>`
 
-There is an extra container called the observer which can be used to visualize the simple timeout function(for testing) in the controller nodes.
+At localhost:5000 there is an extra container called the observer which can be used to visualize the leader election.
 
-Replace the timeout function with the proper one and add rest of the code. For communication between nodes use *http using the requests module* like it has been done.
 
