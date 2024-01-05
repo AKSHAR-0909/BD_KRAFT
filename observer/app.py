@@ -8,7 +8,7 @@ socketio=SocketIO(app)
 def index():
     return render_template("index.html")
 
-@app.route("/timer",methods=['POST'])
+@app.route("/update",methods=['POST'])
 def timer():
     data=request.get_json()
     socketio.emit("index",data)
