@@ -34,6 +34,7 @@ class Node:
         self.last_msg_lock = threading.Lock()
         self.election_lock = threading.Lock()
         self.leader_log_lock = threading.Lock()
+        self.term_loc = threading.Lock()
         self.log_file = log_file
         self.next_index = {}  #adding next index , initializing it 0 as of now
         self._initialize_next_index()
@@ -65,7 +66,7 @@ class Node:
                 "term": term,
                 "leaderId" : self.current_leader,
                 "prevLogIndex" : self.next_index[i],
-                "prevLogTerm" : self.log_file[self.next_index[i]][-1],  # FIX THIS LATER
+                # "prevLogTerm" : self.log_file[self.next_index[i]][-1],  # FIX THIS LATER
                 "entries" : new_entries,
                 "msg":"sending heartbeat"
             }
@@ -73,12 +74,13 @@ class Node:
                 res = requests.post(f"http://{i}:5000/heartbeat",json=data,headers={"Content-Type": "application/json"})
             except Exception as e:
                     print(f"Error {e}")
+        return
 
     def send_heartbeat(self, term, i):
         heart_beat_time = time.time()
         while time.time()-heart_beat_time<=HEARTBEAT_TIMOUT and self.term == term and self.state == LEADER:
             self.appendEntriesSend(term, i,[])
-            time.sleep(HEARBEAT_INTERVAL)
+            time.sleep(HEARBEAT_INTERVAL/10)
             heart_beat_time = time.time()
         return
     
@@ -103,13 +105,12 @@ class Node:
             if time.time()-self.last_msg_time>=heartbeat_timeout:
                 self.start_election()
             else:
-                data={"ip":self.my_ip,"counter":abs(time.time()-self.last_msg_time)}
+                data={"ip":self.my_ip,"counter":abs(heartbeat_timeout-(time.time()-self.last_msg_time)),"term":self.term}
                 requests.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
 
 
     def recv_heartbeat(self,data):
-        if self.term < data['term']:
-            self.term = data['term']
+        self.state = FOLLOWER
         self.init_timeout()
         return {
             "term":self.term,
@@ -134,6 +135,7 @@ class Node:
                 }
         else:
             self.voted_for['term'] = data['term']
+            self.term = data['term']
             self.voted_for['candidateId'] = data['candidateId']
             return {
                 "term":self.term,
@@ -145,8 +147,13 @@ class Node:
         print(f"{self.my_ip} - Transition to CANDIDATE")
         data={"candidateIP":self.my_ip}
         requests.post("http://bd_kraft-observer-1:5000/transitionToCandidate",json=data,headers={"Content-Type": "application/json"})
+        time.sleep(2)
         self.state = CANDIDATE
-        self.term += 1
+        with self.term_loc:
+            self.term += 1
+        data={"ip":self.my_ip,"counter":0,"term":self.term}
+        requests.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
+        return
 
 
     # CANDIDATE FUNCTION
@@ -154,13 +161,18 @@ class Node:
         print(f"{self.my_ip} Transition to LEADER")
         data={"leaderIP":self.my_ip}
         requests.post("http://bd_kraft-observer-1:5000/transitionToLeader",json=data,headers={"Content-Type": "application/json"})
+        time.sleep(2)
+
         self.state = LEADER
         self.current_leader = self.my_ip
+        data={"ip":self.my_ip,"counter":0,"term":self.term}
+        requests.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
         self.startHearbeat(self.term)
 
         with self.next_index_lock:
             for ips in self.node_list:
                 self.next_index[ips] = len(self.log_file)
+        return
         
     def sending_vote_req(self,i,data):
         turn = 0
@@ -186,6 +198,7 @@ class Node:
             print("votes = ",self.votes)
             if self.state == CANDIDATE:
                 if(self.votes>=ceil((len(self.node_list))/2)):
+                    print()
                     self._transition_to_leader()
 
                     # threading.Thread(self.start_heartbeat()).start()

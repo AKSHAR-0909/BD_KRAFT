@@ -20,9 +20,11 @@
         socket.on("index",(data)=>{
             var ip =data['ip']
             var timer=data['counter']
+            var term = data['term']
             // console.log(ip,typeof(ip),timer,typeof(timer))
             if(ip in mapController){
-                mapController[ip].timerInfo.textContent=timer
+                mapController[ip].timerInfo.textContent=`Timer: ${timer}`;
+                mapController[ip].termInfo.textContent = `Term: ${term}`;
             }
             else{
                 var newController=document.createElement("div")
@@ -32,21 +34,26 @@
                 state.setAttribute("id","state")
                 var ipInfo=document.createElement("p")
                 var timerInfo=document.createElement("p")
+                var termInfo = document.createElement("p")
 
                 state.textContent="FOLLOWER"
                 ipInfo.textContent = `IP: ${ip}`;
                 timerInfo.textContent = `Timer: ${timer}`;
+                termInfo.textContent = `Term: ${term}`;
+
 
                 newController.appendChild(state)
                 newController.appendChild(ipInfo)
                 newController.appendChild(timerInfo)
+                newController.appendChild(termInfo)
 
                 document.getElementById("mapController").appendChild(newController)
 
                 mapController[ip] = {
                     div: newController,
                     ipInfo: ipInfo,
-                    timerInfo: timerInfo
+                    timerInfo: timerInfo,
+                    termInfo: termInfo
                 };
             }
         })
