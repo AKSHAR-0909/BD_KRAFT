@@ -19,24 +19,15 @@ def index():
 
 @app.route("/vote_Req",methods=['POST'])
 def voteReq():
-    rejectVote=jsonify({
-        "term" : myNode.term,
-        "voteGranted" : False
-    })
-    
     data=request.get_json()
-    if myNode.term > data['term']: # if the follower term > candidate
-        return rejectVote
-    elif  myNode.voted_for['term']==myNode.term:
-        return rejectVote
-    elif myNode.next_index[myNode.my_ip]-1 > data['lastLogIndex']:
-        return rejectVote
-    else:
-        myNode.voted_for['term'] = data['term']
-        myNode.voted_for['candidateId'] = data['candidateId']
-        return jsonify({
-            "term":myNode.term,
-            "voteGranted":True
-        })
+    res = myNode.vote_response_rpc(data)
+    return res
+
+@app.route("/heartbeat",methods=['POST'])
+def heartbeat_handler():
+    data = request.json()
+    res = myNode.recv_heartbeat(data)
+    return res
+
 
     
