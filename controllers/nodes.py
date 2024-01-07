@@ -1,6 +1,6 @@
 import threading
 import time
-import random, request
+import random, requests
 from math import ceil
 
 # TIMEOUT_TIME = 200 ,the reason for removing this is that 
@@ -46,23 +46,16 @@ class Node:
             self.next_index[ips] = len(self.log_file)
     #resetting the timeout everytime
     def reset_timeout(self):
-        # self.election_time =  time.time()+random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/1000
-        # assuming last message was sent some random time ago
         with self.last_msg_lock:
-            self.last_msg_time = time.time() + random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/10    
+            self.last_msg_time = time.time()    
         return
        
     #  Initilises the timeout and creates a timeout thread initially
     def init_timeout(self):
         self.reset_timeout()
-        # if self.state==FOLLOWER: removing this because the leader would also have a thread and it should reset when 
-        # it receives a 
-        if self.heartbeat_thread and self.heartbeat_thread.is_alive():
-            return 
-        
-        # if not (self.timeout_thread and self.timeout_thread.is_alive()):
-        self.timeout_thread = threading.Thread(target=self.check_timeout,args=())
-        self.timeout_thread.start()    
+        if not (self.timeout_thread and self.timeout_thread.is_alive()):
+            self.timeout_thread = threading.Thread(target=self.check_timeout,args=())
+            self.timeout_thread.start()    
 
     # ------------------------------------------------------------------------------------------------------
     # LEADER FUNCTIONS
@@ -77,7 +70,7 @@ class Node:
                 "msg":"sending heartbeat"
             }
             try:
-                res = request.post(f"http://{i}:5000/heartbeat",json=data,headers={"Content-Type": "application/json"})
+                res = requests.post(f"http://{i}:5000/heartbeat",json=data,headers={"Content-Type": "application/json"})
             except Exception as e:
                     print(f"Error {e}")
 
@@ -105,12 +98,13 @@ class Node:
     # Implemented as thread so as to run it parallely
     def check_timeout(self):
         print(f"Node {self.my_ip} timeout started!!!")
+        heartbeat_timeout = random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/10
         while self.state!=LEADER:
-            if time.time()-self.last_msg_time>=0:
+            if time.time()-self.last_msg_time>=heartbeat_timeout:
                 self.start_election()
             else:
                 data={"ip":self.my_ip,"counter":abs(time.time()-self.last_msg_time)}
-                request.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
+                requests.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
 
 
     def recv_heartbeat(self,data):
@@ -123,7 +117,7 @@ class Node:
         }
     
     def vote_response_rpc(self,data):
-        if self.term > data['term']: # if the follower term > candidate
+        if self.term > data['term'] or self.state==LEADER: # if the follower term > candidate
                 return {
                     "term" : self.term,
                     "voteGranted" : False
@@ -150,7 +144,7 @@ class Node:
     def _transition_to_candidate(self):
         print(f"{self.my_ip} - Transition to CANDIDATE")
         data={"candidateIP":self.my_ip}
-        request.post("http://bd_kraft-observer-1:5000/transitionToCandidate",json=data,headers={"Content-Type": "application/json"})
+        requests.post("http://bd_kraft-observer-1:5000/transitionToCandidate",json=data,headers={"Content-Type": "application/json"})
         self.state = CANDIDATE
         self.term += 1
 
@@ -159,7 +153,7 @@ class Node:
     def _transition_to_leader(self):
         print(f"{self.my_ip} Transition to LEADER")
         data={"leaderIP":self.my_ip}
-        request.post("http://bd_kraft-observer-1:5000/transitionToLeader",json=data,headers={"Content-Type": "application/json"})
+        requests.post("http://bd_kraft-observer-1:5000/transitionToLeader",json=data,headers={"Content-Type": "application/json"})
         self.state = LEADER
         self.current_leader = self.my_ip
         self.startHearbeat(self.term)
@@ -173,7 +167,7 @@ class Node:
         res = None
         while not res and turn<3:
             try:
-                res = request.post(f"http://{i}:5000/vote_Req",json=data,headers={"Content-Type": "application/json"})
+                res = requests.post(f"http://{i}:5000/vote_Req",json=data,headers={"Content-Type": "application/json"})
                 res=res.json()
                 if res['voteGranted']:
                     # print("incrementing vote from  votes = ",self.votes)
@@ -181,7 +175,7 @@ class Node:
                     break
             except Exception as e:
                 print(e)
-                print(f"Vote request to {i} by candidate {self.my_ip} failed!!!")
+                print(f"Vote requests to {i} by candidate {self.my_ip} failed!!!")
                 turn += 1
 
         return
