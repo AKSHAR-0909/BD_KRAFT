@@ -1,6 +1,6 @@
 import threading
 import time
-import random, requests
+import random, request
 from math import ceil
 
 # TIMEOUT_TIME = 200 ,the reason for removing this is that 
@@ -77,7 +77,7 @@ class Node:
                 "msg":"sending heartbeat"
             }
             try:
-                res = requests.post(f"http://{i}:5000/heartbeat",json=data,headers={"Content-Type": "application/json"})
+                res = request.post(f"http://{i}:5000/heartbeat",json=data,headers={"Content-Type": "application/json"})
             except Exception as e:
                     print(f"Error {e}")
 
@@ -110,7 +110,7 @@ class Node:
                 self.start_election()
             else:
                 data={"ip":self.my_ip,"counter":abs(time.time()-self.last_msg_time)}
-                requests.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
+                request.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
 
 
     def recv_heartbeat(self,data):
@@ -150,7 +150,7 @@ class Node:
     def _transition_to_candidate(self):
         print(f"{self.my_ip} - Transition to CANDIDATE")
         data={"candidateIP":self.my_ip}
-        requests.post("http://bd_kraft-observer-1:5000/transitionToCandidate",json=data,headers={"Content-Type": "application/json"})
+        request.post("http://bd_kraft-observer-1:5000/transitionToCandidate",json=data,headers={"Content-Type": "application/json"})
         self.state = CANDIDATE
         self.term += 1
 
@@ -159,7 +159,7 @@ class Node:
     def _transition_to_leader(self):
         print(f"{self.my_ip} Transition to LEADER")
         data={"leaderIP":self.my_ip}
-        requests.post("http://bd_kraft-observer-1:5000/transitionToLeader",json=data,headers={"Content-Type": "application/json"})
+        request.post("http://bd_kraft-observer-1:5000/transitionToLeader",json=data,headers={"Content-Type": "application/json"})
         self.state = LEADER
         self.current_leader = self.my_ip
         self.startHearbeat(self.term)
@@ -173,7 +173,7 @@ class Node:
         res = None
         while not res and turn<3:
             try:
-                res = requests.post(f"http://{i}:5000/vote_Req",json=data,headers={"Content-Type": "application/json"})
+                res = request.post(f"http://{i}:5000/vote_Req",json=data,headers={"Content-Type": "application/json"})
                 res=res.json()
                 if res['voteGranted']:
                     # print("incrementing vote from  votes = ",self.votes)
