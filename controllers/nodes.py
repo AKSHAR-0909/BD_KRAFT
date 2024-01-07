@@ -62,16 +62,44 @@ class Node:
         
         # if not (self.timeout_thread and self.timeout_thread.is_alive()):
         self.timeout_thread = threading.Thread(target=self.check_timeout,args=())
-        self.timeout_thread.start()
+        self.timeout_thread.start()    
 
-            
-        # self.heartbeat_thread = threading.Thread(target=self.receive_heartbeat, args=())
-        # self.heartbeat_thread.start()
+    # ------------------------------------------------------------------------------------------------------
+    # LEADER FUNCTIONS
+    def appendEntriesSend(self,term,i, new_entries):
+        if self.state==LEADER:
+            data = {
+                "term": term,
+                "leaderId" : self.current_leader,
+                "prevLogIndex" : self.next_index[i],
+                "prevLogTerm" : self.log_file[self.next_index[i]][-1],  # FIX THIS LATER
+                "entries" : new_entries,
+                "msg":"sending heartbeat"
+            }
+            try:
+                res = requests.post(f"http://{i}:5000/heartbeat",json=data,headers={"Content-Type": "application/json"})
+            except Exception as e:
+                    print(f"Error {e}")
 
+    def send_heartbeat(self, term, i):
+        heart_beat_time = time.time()
+        while time.time()-heart_beat_time<=HEARTBEAT_TIMOUT and self.term == term and self.state == LEADER:
+            self.appendEntriesSend(term, i,[])
+            time.sleep(HEARBEAT_INTERVAL)
+            heart_beat_time = time.time()
+        return
+    
+    def startHearbeat(self,term):
+        print("starting heatbeat!!!!")
+        if self.term == term:
+            for f_ips in self.node_list:
+                if f_ips == self.my_ip:
+                    continue
+                threading.Thread(target=self.send_heartbeat,args=(self.term,f_ips)).start()
+        return
 
-    # making this uniform to receive both heartbeats and vote requests
-
-
+    # -----------------------------------------------------------------------------------------------------
+    # FOLLOWER FUNCTIONS
 
     # It constantly checks whether the node has timed out or not
     # Implemented as thread so as to run it parallely
@@ -85,37 +113,61 @@ class Node:
                 requests.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
 
 
-            
-    # This function starts the election as soon as a node has timed out
-    # from the init timeout function
-    def start_election(self):
-        with self.election_lock:
-            print(f"in election : {self.my_ip} is candidate now!!!")
-            self._transition_to_candidate() # to maintian modularity
-            self.votes = 0
-            self.increment_vote()
-            self.vote_request_rpc(self.term) #safe to pass
-
-    #call increment vote from this function
-    def vote_request_rpc(self,term):
-        # TODO: vote timeout
-        # self.state = FOLLOWER
-        # self.init_timeout()
-        # if self.state == CANDIDATE:  safe to compare term rather than state
-        if self.term == term and self.state == CANDIDATE:
-            data = {
+    def recv_heartbeat(self,data):
+        if self.term < data['term']:
+            self.term = data['term']
+        self.init_timeout()
+        return {
+            "term":self.term,
+            "success": True
+        }
+    
+    def vote_response_rpc(self,data):
+        if self.term > data['term']: # if the follower term > candidate
+                return {
+                    "term" : self.term,
+                    "voteGranted" : False
+                }
+        elif  self.voted_for['term']==self.term:
+            return {
+                    "term" : self.term,
+                    "voteGranted" : False
+                }
+        elif self.next_index[self.my_ip]-1 > data['lastLogIndex']:
+            return {
+                    "term" : self.term,
+                    "voteGranted" : False
+                }
+        else:
+            self.voted_for['term'] = data['term']
+            self.voted_for['candidateId'] = data['candidateId']
+            return {
                 "term":self.term,
-                "candidateId":self.my_ip,
-                "lastLogIndex" : self.next_index[self.my_ip]-1,
-                "lastLogTerm" : self.log_file[self.next_index[self.my_ip]-1]
+                "voteGranted":True
             }
-            
-            for f_ip in self.node_list:
-                if self.my_ip != f_ip:
-                    threading.Thread(target=self.sending_vote_req,args=(f_ip,data)).start()
-        return
+    
+
+    def _transition_to_candidate(self):
+        print(f"{self.my_ip} - Transition to CANDIDATE")
+        data={"candidateIP":self.my_ip}
+        requests.post("http://bd_kraft-observer-1:5000/transitionToCandidate",json=data,headers={"Content-Type": "application/json"})
+        self.state = CANDIDATE
+        self.term += 1
 
 
+    # CANDIDATE FUNCTION
+    def _transition_to_leader(self):
+        print(f"{self.my_ip} Transition to LEADER")
+        data={"leaderIP":self.my_ip}
+        requests.post("http://bd_kraft-observer-1:5000/transitionToLeader",json=data,headers={"Content-Type": "application/json"})
+        self.state = LEADER
+        self.current_leader = self.my_ip
+        self.startHearbeat(self.term)
+
+        with self.next_index_lock:
+            for ips in self.node_list:
+                self.next_index[ips] = len(self.log_file)
+        
     def sending_vote_req(self,i,data):
         turn = 0
         res = None
@@ -144,85 +196,36 @@ class Node:
 
                     # threading.Thread(self.start_heartbeat()).start()
         return
-     
-    def vote_response_rpc(self,data):
-        if self.term > data['term']: # if the follower term > candidate
-                return {
-                    "term" : self.term,
-                    "voteGranted" : False
-                }
-        elif  self.voted_for['term']==self.term:
-            return {
-                    "term" : self.term,
-                    "voteGranted" : False
-                }
-        elif self.next_index[self.my_ip]-1 > data['lastLogIndex']:
-            return {
-                    "term" : self.term,
-                    "voteGranted" : False
-                }
-        else:
-            self.voted_for['term'] = data['term']
-            self.voted_for['candidateId'] = data['candidateId']
-            return {
+
+    # This function starts the election as soon as a node has timed out
+    # from the init timeout function
+    def start_election(self):
+        with self.election_lock:
+            print(f"in election : {self.my_ip} is candidate now!!!")
+            self._transition_to_candidate() # to maintian modularity
+            self.votes = 0
+            self.increment_vote()
+            self.vote_request_rpc(self.term) #safe to pass
+
+    #call increment vote from this function
+    def vote_request_rpc(self,term):
+        # TODO: vote timeout
+        # self.state = FOLLOWER
+        # self.init_timeout()
+        # if self.state == CANDIDATE:  safe to compare term rather than state
+        if self.term == term and self.state == CANDIDATE:
+            data = {
                 "term":self.term,
-                "voteGranted":True
+                "candidateId":self.my_ip,
+                "lastLogIndex" : self.next_index[self.my_ip]-1,
+                "lastLogTerm" : self.log_file[self.next_index[self.my_ip]-1]
+                # FIX LATER
             }
-        
-    def recv_heartbeat(self,data):
-        if self.term < data['term']:
-            self.term = data['term']
-        self.init_timeout()
-        return {
-            "term":self.term,
-            "success": True
-        }
-    
-    def send_heartbeat(self,term,i):
-        data = {
-            "term":self.term,
-            "msg":"sending heartbeat"
-        }
-        heart_beat_time = time.time()
-        while time.time()-heart_beat_time<=HEARTBEAT_TIMOUT and self.term == term and self.state == LEADER:
-            try:
-                res = requests.post(f"http://{i}:5000/heartbeat",json=data,headers={"Content-Type": "application/json"})
-            except Exception as e:
-                print(f"Error {e}")
-            time.sleep(HEARBEAT_INTERVAL)
-            heart_beat_time = time.time()
+            
+            for f_ip in self.node_list:
+                if self.my_ip != f_ip:
+                    threading.Thread(target=self.sending_vote_req,args=(f_ip,data)).start()
         return
-    
-    def startHearbeat(self,term):
-        print("starting heatbeat!!!!")
-        if self.term == term:
-            for f_ips in self.node_list:
-                if f_ips == self.my_ip:
-                    continue
-                threading.Thread(target=send_heartbeat,args=(self.term,f_ips)).start()
-        return
-
-    def _transition_to_candidate(self):
-        print(f"{self.my_ip} - Transition to CANDIDATE")
-        data={"candidateIP":self.my_ip}
-        requests.post("http://bd_kraft-observer-1:5000/transitionToCandidate",json=data,headers={"Content-Type": "application/json"})
-        self.state = CANDIDATE
-        self.term += 1
-
-    def _transition_to_leader(self):
-        print(f"{self.my_ip} Transition to LEADER")
-        data={"leaderIP":self.my_ip}
-        requests.post("http://bd_kraft-observer-1:5000/transitionToLeader",json=data,headers={"Content-Type": "application/json"})
-        self.state = LEADER
-        self.current_leader = self.my_ip
-        self.startHearbeat(self.term)
-
-        with self.next_index_lock:
-            for ips in self.node_list:
-                self.next_index[ips] = len(self.log_file)
-        
-
-        
 
 
 # Node(1,[1,2,3])
