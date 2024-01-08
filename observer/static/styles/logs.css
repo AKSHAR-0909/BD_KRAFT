@@ -1,0 +1,23 @@
+.navigation {
+    display: flex;
+    justify-content: center;
+}
+
+.nav-item {
+    margin: 0 10px;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 20px;
+}
+
+h1 {
+    text-align: center;
+}
+
+.logEntry {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+}

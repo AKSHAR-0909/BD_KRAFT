@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+        <link rel="stylesheet" type="text/css" href="../static/styles/logs.css">
+
+    </head>
+    <body>
+        <div class="navigation">
+            <div class="nav-item">
+                <a href="/">RAFT OBSERVER</a>
+            </div>
+            <div class="nav-item">
+                <a href="/logs">LOGS OBSERVER</a>
+            </div>
+        </div>
+        <div class="navigation">
+            <h1>LOGS OBSERVER</h1>
+        </div>
+
+        <div id="logController">
+
+        </div>
+    </body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+    <script>
+        var logController={}
+        var socket=io.connect('http://'+document.domain+":"+location.port)
+        
+        socket.on("registerBrokerRecord",(data)=>{
+            console.log(data)
+            const logEntryDiv = document.createElement('div');
+            logEntryDiv.classList.add('logEntry');
+
+            logEntryDiv.innerHTML = `
+                <p><strong>Type:</strong> ${data.type}</p>
+                <p><strong>Name:</strong> ${data.name}</p>
+                <p><strong>Internal UUID:</strong> ${data.fields.internalUUID}</p>
+                <p><strong>Broker ID:</strong> ${data.fields.brokerId}</p>
+                <p><strong>Broker Host:</strong> ${data.fields.brokerHost}</p>
+                <p><strong>Broker Port:</strong> ${data.fields.brokerPort}</p>
+                <p><strong>Security Protocol:</strong> ${data.fields.securityProtocol}</p>
+                <p><strong>Broker Status:</strong> ${data.fields.brokerStatus}</p>
+                <p><strong>Epoch:</strong> ${data.fields.epoch}</p>
+                <p><strong>Timestamp:</strong> ${data.timestamp}</p>
+            `;
+
+            document.getElementById('logController').appendChild(logEntryDiv);
+
+        })
+    </script>
+</html>

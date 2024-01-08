@@ -31,3 +31,12 @@
 .highlightedLeader {
     transform: scale(1.1); /* Change the scale factor to your desired value */
 }
+
+.navigation {
+    display: flex;
+    justify-content: center;
+}
+
+.nav-item {
+    margin: 0 10px;
+}

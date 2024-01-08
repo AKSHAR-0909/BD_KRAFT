@@ -8,7 +8,17 @@
 
     </head>
     <body>
-        <h1>OBSERVER</h1>
+        <div class="navigation">
+            <div class="nav-item">
+                <a href="/">RAFT OBSERVER</a>
+            </div>
+            <div class="nav-item">
+                <a href="/logs">LOGS OBSERVER</a>
+            </div>
+        </div>
+        <div class="navigation">
+            <h1>RAFT OBSERVER</h1>
+        </div>
         <div id="mapController">
 
         </div>
@@ -16,6 +26,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
     <script>
         var mapController={}
+        var logController={}
         var socket=io.connect('http://'+document.domain+":"+location.port)
         socket.on("index",(data)=>{
             var ip =data['ip']
@@ -83,6 +94,7 @@
                 // mapController[followerIP].div.classList.add("highlighted")
             }
         })
+
         
     </script>
 </html>

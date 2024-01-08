@@ -31,3 +31,15 @@ def handleFollower():
     data=request.get_json()
     socketio.emit("transitionToFollower",data)
     return "Hello"
+
+@app.route("/logs/registerBrokerRecord",methods=['POST'])
+def registerBrokerRecord():
+    data=request.get_json()
+    print("registerBrokerRecord",data)
+    socketio.emit("registerBrokerRecord",data)
+    return "Hello"
+
+@app.route('/logs')
+def view_logs():
+    # Add logic to fetch and display logs
+    return render_template('logs.html')
