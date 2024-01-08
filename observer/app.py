@@ -25,3 +25,9 @@ def handleLeader():
     data=request.get_json()
     socketio.emit("transitionToLeader",data)
     return "Hello"
+
+@app.route("/transitionToFollower",methods=['POST'])
+def handleFollower():
+    data=request.get_json()
+    socketio.emit("transitionToFollower",data)
+    return "Hello"

@@ -75,5 +75,14 @@
                 mapController[leaderIP].div.classList.add("highlightedLeader")
             }
         })
+        socket.on("transitionToFollower",(data)=>{
+            var followerIP=data['followerIP']
+            if(followerIP in mapController){
+                console.log(followerIP)
+                mapController[followerIP].div.querySelector("#state").textContent="FOLLOWER"
+                // mapController[followerIP].div.classList.add("highlighted")
+            }
+        })
+        
     </script>
 </html>

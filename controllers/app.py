@@ -8,7 +8,7 @@ from nodes import *
 app=Flask("__name__")
 
 my_ip =socket.gethostbyname(socket.gethostname())
-node_list=[my_ip[:-1]+str(i) for i in range(3,6)]
+node_list=[my_ip[:-1]+str(i) for i in range(3,7)]
 
 myNode=Node(my_ip,node_list,"log.txt")
 

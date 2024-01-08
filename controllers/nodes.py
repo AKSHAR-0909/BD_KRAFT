@@ -7,7 +7,7 @@ from math import ceil
 # in case all the hearbeats are sent parallely and leader dies ,
 # then every node would time out at the same time and all would become candidates in check timeout
 MIN_TIMEOUT = 50
-MAX_TIMEOUT = 200
+MAX_TIMEOUT = 80
 FOLLOWER  = 0
 CANDIDATE = 1
 LEADER = 2
@@ -33,6 +33,7 @@ class Node:
         self.voting_lock = threading.Lock()
         self.last_msg_lock = threading.Lock()
         self.election_lock = threading.Lock()
+        self.next_index_lock = threading.Lock()
         self.leader_log_lock = threading.Lock()
         self.term_loc = threading.Lock()
         self.log_file = log_file
@@ -101,7 +102,7 @@ class Node:
     def check_timeout(self):
         print(f"Node {self.my_ip} timeout started!!!")
         heartbeat_timeout = random.randint(MIN_TIMEOUT,MAX_TIMEOUT)/10
-        while self.state!=LEADER:
+        while self.state!=LEADER and self.state!=CANDIDATE:
             if time.time()-self.last_msg_time>=heartbeat_timeout:
                 self.start_election()
             else:
@@ -110,7 +111,11 @@ class Node:
 
 
     def recv_heartbeat(self,data):
-        self.state = FOLLOWER
+        
+        if self.term < data['term']:
+            with self.term_loc:
+                self.term = data['term']
+                self._transition_to_follower()
         self.init_timeout()
         return {
             "term":self.term,
@@ -123,7 +128,7 @@ class Node:
                     "term" : self.term,
                     "voteGranted" : False
                 }
-        elif  self.voted_for['term']==self.term:
+        elif  data['term']==self.term:
             return {
                     "term" : self.term,
                     "voteGranted" : False
@@ -135,19 +140,20 @@ class Node:
                 }
         else:
             self.voted_for['term'] = data['term']
-            self.term = data['term']
+            with self.term_loc:
+                self.term = data['term']
             self.voted_for['candidateId'] = data['candidateId']
             return {
                 "term":self.term,
                 "voteGranted":True
             }
-    
+        return None
 
     def _transition_to_candidate(self):
         print(f"{self.my_ip} - Transition to CANDIDATE")
         data={"candidateIP":self.my_ip}
         requests.post("http://bd_kraft-observer-1:5000/transitionToCandidate",json=data,headers={"Content-Type": "application/json"})
-        time.sleep(2)
+        # time.sleep(2)
         self.state = CANDIDATE
         with self.term_loc:
             self.term += 1
@@ -155,14 +161,19 @@ class Node:
         requests.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
         return
 
-
+    def _transition_to_follower(self):
+        print("becoming follower!!")
+        self.state = FOLLOWER
+        print(f"{self.my_ip} - Transition to Follower")
+        data={"followerIP":self.my_ip}
+        requests.post("http://bd_kraft-observer-1:5000/transitionToFollower",json=data,headers={"Content-Type": "application/json"})
+        return
     # CANDIDATE FUNCTION
     def _transition_to_leader(self):
         print(f"{self.my_ip} Transition to LEADER")
         data={"leaderIP":self.my_ip}
         requests.post("http://bd_kraft-observer-1:5000/transitionToLeader",json=data,headers={"Content-Type": "application/json"})
-        time.sleep(2)
-
+        # time.sleep(2)
         self.state = LEADER
         self.current_leader = self.my_ip
         data={"ip":self.my_ip,"counter":0,"term":self.term}
@@ -179,7 +190,7 @@ class Node:
         res = None
         while not res and turn<3:
             try:
-                res = requests.post(f"http://{i}:5000/vote_Req",json=data,headers={"Content-Type": "application/json"})
+                res = requests.post(f"http://{i}:5000/vote_Req",json=data,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
                 res=res.json()
                 if res['voteGranted']:
                     # print("incrementing vote from  votes = ",self.votes)
@@ -212,6 +223,8 @@ class Node:
             self._transition_to_candidate() # to maintian modularity
             self.votes = 0
             self.increment_vote()
+            self.voted_for['term'] = self.term
+            self.voted_for['candidateID'] = self.my_ip
             self.vote_request_rpc(self.term) #safe to pass
 
     #call increment vote from this function
