@@ -20,14 +20,57 @@
             <h1>LOGS OBSERVER</h1>
         </div>
 
-        <div id="logController">
+        <div id="mapController">
 
         </div>
     </body>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
     <script>
-        var logController={}
+        var mapController={}
         var socket=io.connect('http://'+document.domain+":"+location.port)
+        var leaderIP=0
+
+        socket.on("index",(data)=>{
+            var IP=data['ip']
+            if (IP in mapController){
+                
+            }
+            else{
+                var mapControllerDiv=document.createElement("div")
+                mapControllerDiv.classList.add("logController")
+
+                var ipInfo=document.createElement("p")
+                var state=document.createElement("p")
+                var logs=document.createElement("div")
+
+                ipInfo.classList.add("navigation")
+                state.classList.add("navigation")
+                logs.setAttribute("id","logs")
+
+                ipInfo.textContent=`${IP}`
+                state.textContent="FOLLOWER"
+                state.setAttribute("id","state")
+
+                mapControllerDiv.appendChild(ipInfo)
+                mapControllerDiv.appendChild(state)
+                mapControllerDiv.appendChild(logs)
+
+                document.getElementById("mapController").appendChild(mapControllerDiv)
+
+                mapController[IP]={
+                    div:mapControllerDiv,
+                    ipInfo:ipInfo
+                }                
+            }
+        })
+
+        socket.on("transitionToLeader",(data)=>{
+            leaderIP=data['leaderIP']
+            if(leaderIP in mapController){
+                console.log(leaderIP)
+                mapController[leaderIP].div.querySelector("#state").textContent="LEADER"
+            }
+        })
         
         socket.on("registerBrokerRecord",(data)=>{
             console.log(data)
@@ -35,7 +78,6 @@
             logEntryDiv.classList.add('logEntry');
 
             logEntryDiv.innerHTML = `
-                <p><strong>Type:</strong> ${data.type}</p>
                 <p><strong>Name:</strong> ${data.name}</p>
                 <p><strong>Internal UUID:</strong> ${data.fields.internalUUID}</p>
                 <p><strong>Broker ID:</strong> ${data.fields.brokerId}</p>
@@ -47,7 +89,7 @@
                 <p><strong>Timestamp:</strong> ${data.timestamp}</p>
             `;
 
-            document.getElementById('logController').appendChild(logEntryDiv);
+            mapController[leaderIP].div.querySelector("#logs").appendChild(logEntryDiv);
 
         })
     </script>
