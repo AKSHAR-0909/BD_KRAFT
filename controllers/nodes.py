@@ -73,9 +73,18 @@ class Node:
             }
             try:
                 res = requests.post(f"http://{i}:5000/heartbeat",json=data,headers={"Content-Type": "application/json"})
+                if new_entries != []:
+                    if res["success"]==True:
+                        self.putToLog(data)
+                        # HANDLE COMMIT ROUTE
+                        res = requests.post(f"http://{i}:5000/commit",json=data,headers={"Content-Type": "application/json"})
+
             except Exception as e:
                     print(f"Error {e}")
         return
+
+    def putToLog(data):
+        
 
     def send_heartbeat(self, term, i):
         heart_beat_time = time.time()
@@ -111,7 +120,6 @@ class Node:
 
 
     def recv_heartbeat(self,data):
-        
         if self.term < data['term']:
             with self.term_loc:
                 self.term = data['term']
