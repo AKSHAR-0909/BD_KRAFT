@@ -58,12 +58,14 @@ def registerBrokerRecord():
         },
         "timestamp":time.time()
     }
-    Storage["RegisterBrokerRecords"]["records"][brokerID]=newBrokerRecord
-    Storage["RegisterBrokerRecords"]["timestamp"]=time.time()
-    print( Storage["RegisterBrokerRecords"]["records"][brokerID])
-    requests.post("http://bd_kraft-observer-1:5000/logs/registerBrokerRecord",
-                  json=Storage["RegisterBrokerRecords"]["records"][brokerID],headers={"Content-Type":"application/json"})
-    return internalUUID
+    # Storage["RegisterBrokerRecords"]["records"][brokerID]=newBrokerRecord
+    # Storage["RegisterBrokerRecords"]["timestamp"]=time.time()
+    # print( Storage["RegisterBrokerRecords"]["records"][brokerID])
+    # requests.post("http://bd_kraft-observer-1:5000/logs/registerBrokerRecord",
+    #               json=Storage["RegisterBrokerRecords"]["records"][brokerID],headers={"Content-Type":"application/json"})
+    res = myNode.appendToLog(newBrokerRecord)
+    
+    return res
     
 
 @app.route("/handleBroker/getActiveBrokers",methods=['GET'])
@@ -77,7 +79,7 @@ def getSpecificBroker(brokerID):
 @app.route("/handleTopic/createTopic",methods=['POST'])
 def createTopic():
     data=request.get_json()
-    topicName=data['name']
+    topicName=data['topic_name']
     topicUUID=uuid.uuid4()
     newTopicRecord={
         "type": "metadata",
@@ -88,12 +90,15 @@ def createTopic():
         },
         "timestamp": time.time() 
     }
-    Storage["TopicRecord"]["records"][topicName]=newTopicRecord
-    return topicUUID
+    # Storage["TopicRecord"]["records"][topicName]=newTopicRecord
+    res = myNode.appendEntriesSend(topicName)
+    
+    return res
 
 @app.route("/handleTopic/getTopic/<name>",methods=['GET'])
 def getTopic(name):
-    return Storage["TopicRecord"]["records"][name]
+    res = myNode.getBrokers(name)
+    return res
 
 @app.route("/handlePatition/createPatition",methods=['POST'])
 def createPatition():
@@ -106,11 +111,17 @@ def createPatition():
             "topicUUID": data['topicUUID'],
             "replicas": data['replicas'], # type: []int; list of broker IDs with replicas; given by client, through config
             "ISR": data['ISR'], # type: []int; list of insync broker ids; given by client, through config
+            "removingReplicas": data['removingReplicas'], # type: []int; list of replicas in process of removal; set as [] by default; updated by the server but not in scope of the project;
+		    "addingReplicas": data['addingReplicas'], # type: []int; list of replicas in the process of addition; set as [] by default; updated by the server but not in scope of the project;
             "leader": data['leader'], # type: string uuid of broker who is leader for partition; given by client
+            "paritionEpoch":0
         },
         "timestamp": time.time()
     }
-    Storage["PartitionRecord"]["records"][data['partitionId']]=newPartitionRecord
+    # Storage["PartitionRecord"]["records"][data['partitionId']]=newPartitionRecord
+    res =  myNode.appendToLog(newPartitionRecord)
+    
+    return res
 
 
 @app.route("/handleProducer/registerProducer")
@@ -126,8 +137,10 @@ def registerProducer():
         },
         "timestamp": time.time()
     }
-    Storage['ProducerIdsRecord']["records"][data['producerId']]=newProducerRecord
-    Storage['ProducerIdsRecord']['timestamp']=time.time()
+    # Storage['ProducerIdsRecord']["records"][data['producerId']]=newProducerRecord
+    # Storage['ProducerIdsRecord']['timestamp']=time.time()
+    res = myNode.appendToLog(newProducerRecord)
+
 
 @app.route("/handleBroker/changeBrokerRecord")
 def changeBrokerRecord():
@@ -140,10 +153,13 @@ def changeBrokerRecord():
             "brokerHost":data['Host'],
             "brokerPort":data['port'],
             "securityProtocol":data["securityProtocol"],
-            "brokerStatus":data['brokerStatus'],
-            "epoch":data['epoch'] # epoch after update
+            "brokerStatus":data['brokerStatus']
         },
         "timestamp": time.time()
     }
-    Storage['ProducerIdsRecord']["records"][data['producerId']]=newProducerRecord
-    Storage['ProducerIdsRecord']['timestamp']=time.time()
+    res = myNode.appendToLog(newProducerRecord)
+
+    return res
+    # Storage['ProducerIdsRecord']["records"][data['producerId']]=newProducerRecord
+    # Storage['ProducerIdsRecord']['timestamp']=time.time()
+    
