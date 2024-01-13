@@ -82,6 +82,14 @@ class Node:
             except Exception as e:
                     print(f"Error {e}")
         return
+    
+    def appendToLog(self,record):
+        if self.state!=LEADER:
+            return {
+                "current_leader":self.current_leader,
+                "success":False
+            }
+        pass
 
     def putToLog(data):
         
@@ -124,6 +132,7 @@ class Node:
             with self.term_loc:
                 self.term = data['term']
                 self._transition_to_follower()
+        self.current_leader = data['leaderId']
         self.init_timeout()
         return {
             "term":self.term,
