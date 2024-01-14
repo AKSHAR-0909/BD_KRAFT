@@ -1,11 +1,10 @@
+import json
+import logging
 import threading
 import time
 import random, requests
 from math import ceil
 
-# TIMEOUT_TIME = 200 ,the reason for removing this is that 
-# in case all the hearbeats are sent parallely and leader dies ,
-# then every node would time out at the same time and all would become candidates in check timeout
 MIN_TIMEOUT = 50
 MAX_TIMEOUT = 80
 FOLLOWER  = 0
@@ -14,6 +13,7 @@ LEADER = 2
 REQUEST_TIMEOUT = 50
 HEARBEAT_INTERVAL = 20
 HEARTBEAT_TIMOUT = 50
+
 
 class Node:
     
@@ -28,6 +28,7 @@ class Node:
         self.election_time = None
         self.voted_for = {"term":None , "candidateId":None}
         self.votes = 0
+        self.append_votes = 0
         self.current_leader = None
         self.heartbeat_thread = None
         self.voting_lock = threading.Lock()
@@ -39,6 +40,7 @@ class Node:
         self.log_file = log_file
         self.next_index = {}  #adding next index , initializing it 0 as of now
         self._initialize_next_index()
+        # self.setup_logger()
 
         self.match_index = [0 for _ in range(len(self.node_list))] # same reason
         self.init_timeout()
@@ -58,6 +60,10 @@ class Node:
         if not (self.timeout_thread and self.timeout_thread.is_alive()):
             self.timeout_thread = threading.Thread(target=self.check_timeout,args=())
             self.timeout_thread.start()    
+        
+    def setup_logger(self):
+        logging.basicConfig(filename=self.log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
     # ------------------------------------------------------------------------------------------------------
     # LEADER FUNCTIONS
@@ -71,30 +77,56 @@ class Node:
                 "entries" : new_entries,
                 "msg":"sending heartbeat"
             }
-            try:
-                res = requests.post(f"http://{i}:5000/heartbeat",json=data,headers={"Content-Type": "application/json"})
-                if new_entries != []:
-                    if res["success"]==True:
-                        self.putToLog(data)
-                        # HANDLE COMMIT ROUTE
-                        res = requests.post(f"http://{i}:5000/commit",json=data,headers={"Content-Type": "application/json"})
+            # res = requests.post(f"http://{i}:5000/heartbeat",json=data,headers={"Content-Type": "application/json"})
+            if new_entries != []:
+                self.append_votes = 0
+                for f_ip in self.node_list:
+                    if self.my_ip != f_ip:
+                        threading.Thread(target=self.sendingAppend,args=(f_ip,data)).start()
 
+                if(self.append_votes>=ceil((len(self.node_list))/2)):
+                    print("Got enough votes to commit")
+                    self.appendToLog(data)
+                    # self.sendCommitMsg(data)
+            self.append_votes = 0
+            
+
+    def sendCommitMsg(self, data):
+        pass
+    
+    def sendingAppend(self,i,data):
+        turn = 0
+        res = None
+        while not res and turn<3:
+            try:
+                res = requests.post(f"http://{i}:5000/hearbeat",json=data,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
+                res=res.json()
+                if res['success']:
+                    # print("incrementing vote from  votes = ",self.votes)
+                    self.incrementAppend(data)
+                    break
             except Exception as e:
-                    print(f"Error {e}")
+                print(e)
+                # try to send requests 3 times
+                print(f"Vote requests to {i} by leader {self.my_ip} failed!!!")
+                turn += 1
+
         return
+
+    def incrementAppend(self, data):
+        # with self.voting_lock:
+        # will put lock here later
+        self.append_votes += 1
+        print("votes = ",self.append_votes)
+        # if self.state == LEADER:
+            
     
     def appendToLog(self,record):
-        if self.state!=LEADER:
-            return {
-                "current_leader":self.current_leader,
-                "success":False
-            }
-        pass
+        json_data = json.dumps(record)
+        logging.info(json_data)
 
-    def putToLog(data):
-        
 
-    def send_heartbeat(self, term, i):
+    def sendHeartbeat(self, term, i):
         heart_beat_time = time.time()
         while time.time()-heart_beat_time<=HEARTBEAT_TIMOUT and self.term == term and self.state == LEADER:
             self.appendEntriesSend(term, i,[])
@@ -108,7 +140,7 @@ class Node:
             for f_ips in self.node_list:
                 if f_ips == self.my_ip:
                     continue
-                threading.Thread(target=self.send_heartbeat,args=(self.term,f_ips)).start()
+                threading.Thread(target=self.sendHeartbeat,args=(self.term,f_ips)).start()
         return
 
     # -----------------------------------------------------------------------------------------------------
@@ -131,12 +163,17 @@ class Node:
         if self.term < data['term']:
             with self.term_loc:
                 self.term = data['term']
-                self._transition_to_follower()
-        self.current_leader = data['leaderId']
-        self.init_timeout()
+                if self.state != FOLLOWER:
+                    self._transition_to_follower()
+                    self.current_leader = data['leaderId']
+            self.init_timeout()
+            return {
+                "term":self.term,
+                "success": True
+            }
         return {
-            "term":self.term,
-            "success": True
+            "term" : self.term,
+            "success" : True
         }
     
     def vote_response_rpc(self,data):
