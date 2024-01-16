@@ -1,2 +1,7 @@
-2024-01-15 22:09:29,364 - INFO - {"term": 21, "leaderId": "hi", "prevLogIndex": 33, "entries": ["new_entries", "rwubg", "itgnr"]}
-2024-01-15 22:23:52,721 - INFO - {"term": 21, "leaderId": "hi", "prevLogIndex": 33, "entries": ["new_entries", "rwubg", "itgnr"]}
+2024-01-15 22:09:29,318 - INFO - {"term": 21, "leaderId": "hi", "prevLogIndex": 33, "entries": ["new_entries", "rwubg", "itgnr"]}
+2024-01-15 22:23:52,312 - INFO - {"term": 21, "leaderId": "second", "prevLogIndex": 34, "entries": ["hi", "rwubgdanees", "itgnr"]}
+2024-01-16 12:17:32,985 - INFO - {"term": 28, "leaderId": "hi", "prevLogIndex": 36, "entries": ["b", "ab", "f"]}
+2024-01-16 12:19:12,738 - INFO - {"term": 28, "leaderId": "hi", "prevLogIndex": 36, "entries": ["b", "ab", "f"]}
+2024-01-16 12:19:46,822 - INFO - {"term": 28, "leaderId": "hi", "prevLogIndex": 36, "entries": ["b", "ab", "f"]}
+2024-01-16 12:20:10,222 - INFO - {"term": 28, "leaderId": "hi", "prevLogIndex": 36, "entries": ["b", "ab", "f"]}
+2024-01-16 12:20:23,902 - INFO - {"term": 28, "leaderId": "hi", "prevLogIndex": 36, "entries": ["b", "ab", "f"]}

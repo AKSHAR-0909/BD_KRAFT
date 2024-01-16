@@ -1,17 +1,17 @@
-# import logging
-# import json
+import logging
+import json
 
 # # THIS IS AN EXAMPLE FILE TO WRITE INTO LOG AND PARSE THE LOG
 
-# logging.basicConfig(filename="something.log", level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-# data = {
-#                 "term": 21,
-#                 "leaderId" : "hi",
-#                 "prevLogIndex" : 33,
-#                 "entries" : ["new_entries","rwubg","itgnr"]
-#             }
-# json_data = json.dumps(data)
-# # logging.info(json_data)
+logging.basicConfig(filename="something.log", level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+data = {
+                "term": 28,
+                "leaderId" : "hi",
+                "prevLogIndex" : 36,
+                "entries" : ["b","ab","f"]
+            }
+json_data = json.dumps(data)
+logging.info(json_data)
 # logging.debug("Starting Thread for Append RPC from leader to follower ")
 
 # with open("something.log", 'r') as file:
@@ -44,7 +44,7 @@ def parse_log_line(line):
         timestamp_str, log_level, message_str = match.groups()
 
         # Convert timestamp string to a datetime object
-        timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+        # timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
 
         try:
             # Parse the message as JSON
@@ -53,7 +53,7 @@ def parse_log_line(line):
             # Handle the case where the message is not valid JSON
             message = {'raw_message': message_str}
 
-        return {'timestamp': timestamp, 'log_level': log_level, 'message': message}
+        return {'timestamp': timestamp_str, 'message': message}
     else:
         print("None")
         return None
@@ -67,4 +67,19 @@ def read_log_file(file_path):
                 print(log_entry)
 
 # Call the function with the path to your log file
-read_log_file(log_file_path)
+# read_log_file(log_file_path)
+
+
+def get_last_line(file_path):
+    with open(file_path, 'rb') as file:
+        file.seek(-2, 2)  # Move the cursor to the second-to-last byte of the file
+        while file.read(1) != b'\n':
+            file.seek(-2, 1)  # Move the cursor one byte back
+        last_line = file.readline().decode('utf-8')
+    return last_line
+
+# Usage
+file_path = 'something.log'
+last_line = get_last_line(file_path)
+log_entry = parse_log_line(last_line)
+print(log_entry)

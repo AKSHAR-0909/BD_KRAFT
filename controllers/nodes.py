@@ -1,3 +1,4 @@
+import re
 import json
 import logging
 import threading
@@ -29,6 +30,7 @@ class Node:
         self.voted_for = {"term":None , "candidateId":None}
         self.votes = 0
         self.append_votes = 0
+        self.prevLogIndex = 0
         self.current_leader = None
         self.heartbeat_thread = None
         self.voting_lock = threading.Lock()
@@ -168,6 +170,13 @@ class Node:
 
 
     def recv_heartbeat(self,data):
+        if self.term > data['term']:
+            return {
+                "prevLogIndex" : self.prevLogIndex,
+                "term" : self.term,
+                "success" : False
+            }
+        
         if self.term < data['term']:
             with self.term_loc:
                 self.term = data['term']
@@ -175,10 +184,25 @@ class Node:
                     self._transition_to_follower()
                     self.current_leader = data['leaderId']
             self.init_timeout()
+
+        if self.prevLogIndex > data['prevLogIndex']:
+            # follower has more entries than leader
+            self.deleteFromLog(data['prevLogIndex'])
             return {
-                "term":self.term,
-                "success": True
+                "prevLogIndex" : self.prevLogIndex,
+                "term" : self.term,
+                "success" : True
             }
+        
+        if self.prevLogIndex < data['prevLogIndex']:
+            # follower is missing some entries
+            
+        
+        
+        # if appendEntries
+        if data['entries'] != []:
+            self.appendToLog(data)
+        
         return {
             "term" : self.term,
             "success" : True
@@ -308,7 +332,45 @@ class Node:
                 if self.my_ip != f_ip:
                     threading.Thread(target=self.sending_vote_req,args=(f_ip,data)).start()
         return
+    
 
+    # ----------------------------------------------------------------
+    # LOG FUNCTIONS
+    def parse_log_line(self, line):
+        # Define a regular expression to match log entries
+        log_pattern = re.compile(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) - (\w+) - (.*)')
+
+        # Use the regular expression to match log entries
+        match = log_pattern.match(line)
+        if match:
+            timestamp_str, log_level, message_str = match.groups()
+
+            # Convert timestamp string to a datetime object
+            # timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+
+            try:
+                # Parse the message as JSON
+                message = json.loads(message_str)
+            except json.JSONDecodeError:
+                # Handle the case where the message is not valid JSON
+                message = {'raw_message': message_str}
+
+            return {'timestamp': timestamp_str, 'message': message}
+        else:
+            print("None")
+            return None
+    
+    def get_last_line(self, file_path):
+        with open(file_path, 'rb') as file:
+            file.seek(-2, 2)  # Move the cursor to the second-to-last byte of the file
+            while file.read(1) != b'\n':
+                file.seek(-2, 1)  # Move the cursor one byte back
+            last_line = file.readline().decode('utf-8')
+        return last_line
+
+    # should delete all logs until prevLogIndex
+    def deleteFromLog(self, prevLogIndex):
+        pass
 
 # Node(1,[1,2,3])
 
