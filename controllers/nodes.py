@@ -75,9 +75,9 @@ class Node:
                 "prevLogIndex" : self.next_index[i],
                 # "prevLogTerm" : self.log_file[self.next_index[i]][-1],  # FIX THIS LATER
                 "entries" : new_entries,
-                "msg":"sending heartbeat"
+                "msg":f"sending message to follower {i}"
             }
-            # res = requests.post(f"http://{i}:5000/heartbeat",json=data,headers={"Content-Type": "application/json"})
+
             if new_entries != []:
                 self.append_votes = 0
                 for f_ip in self.node_list:
@@ -89,10 +89,19 @@ class Node:
                     self.appendToLog(data)
                     # self.sendCommitMsg(data)
             self.append_votes = 0
+
+            # plain heartbeat. This is called by thread with for loop, so no looping
+            if new_entries == []:
+                try:
+                    res = requests.post(f"http://{i}:5000/hearbeat",json=data,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
+                except Exception as e:
+                    print(f"Heartbeat sending to {i} failed")
+
             
 
     def sendCommitMsg(self, data):
         pass
+
     
     def sendingAppend(self,i,data):
         turn = 0
@@ -110,7 +119,6 @@ class Node:
                 # try to send requests 3 times
                 print(f"Vote requests to {i} by leader {self.my_ip} failed!!!")
                 turn += 1
-
         return
 
     def incrementAppend(self, data):
