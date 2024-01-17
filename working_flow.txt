@@ -133,6 +133,72 @@ Make sure that the new leader for a new term always starts with all the entries 
 
         - if broadcastTime > electionTimeout too many followers become candidates and start elections unnecessarily.
 
+(only message not heartbeat)
+AppendTOLOG function
+- if node==leader 
+    -- append the entry to the log
+    -- set last_acknowledgement[node] = log.length
+
+-else node!=current leader
+    -- send the ip of current leader
+
+-for each follower 
+    -- Create thread and replicate log (call appendEntries function)
+
+
+AppendEntries Receiver
+
+-if term(sent by leader)>current_term(follower) 
+    -- current_term = term
+    -- reset election timer
+ 
+--if term == current_term
+    --stay as follower
+    --current_leader = leaderID
+
+-if len(new_entries) > 0 and len(log) > prefixlen
+    -- do index =  min(len(log),prefixlen+len(new_entries))-1
+    -- if log[index].term != new_entries[index-prefixlen]
+        -- cut the log till prefixlen-1
+
+-if prefixlen+len(new_entries) > len(log)
+    - for i in log_length-prefixlen to len(new_entries) (since we do not write over same data)
+        --append the entry to log
+
+- if leaderCommit > commitLength
+    - commit all the messages
+    -set commitLength = leaderCommit
+
+--return false
+    -- if log_length(follower) < prefixlen(leader)
+    or
+    --log[prefixlen-1].term!=prefixTerm
+
+
+In AppendEntries Sender
+
+-if success = true
+    -update next index[follower] = length_log
+
+else
+    -if log_of_follower not empty 
+        -- next_index[node]--
+        --replicate again to that particular follower
+
+    -if term > current_term(leader)
+        --convert to follower
+        
+
+
+
+
+
+
+
+
+
+
+
 
 
 
