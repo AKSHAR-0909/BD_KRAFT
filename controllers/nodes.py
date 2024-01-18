@@ -69,9 +69,34 @@ class Node:
 
     # ------------------------------------------------------------------------------------------------------
     # LEADER FUNCTIONS
-    def appendEntriesSend(self,term,i, new_entries):
+    def appendEntriesSend(self,term,i, data):
         if self.state==LEADER:
-            data = {
+            if data['entries'] != []:
+                res = requests.post(f"http://{i}:5000/hearbeat",json=data,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
+                if res['success']:
+                    # print("incrementing vote from  votes = ",self.votes)
+                    self.incrementAppend(data)
+                    self.handleResponse(i,res)
+                else:
+
+
+            # plain heartbeat. This is called by thread with for loop, so no looping
+            if data['entries'] == []:
+                try:
+                    res = requests.post(f"http://{i}:5000/hearbeat",json=data,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
+                except Exception as e:
+                    print(f"Heartbeat sending to {i} failed")
+
+            
+    def handleResponse(self, follower_id, response):
+        # handle appendEntry response given by follower i 
+
+    def sendCommitMsg(self, data):
+        pass
+
+
+    def x(self,term,i, new_entries):
+        data = {
                 "term": term,
                 "leaderId" : self.current_leader,
                 "prevLogIndex" : self.next_index[i],
@@ -79,49 +104,17 @@ class Node:
                 "entries" : new_entries,
                 "msg":f"sending message to follower {i}"
             }
+        self.append_votes = 0
+        self.appendToLog()
+        for f_ip in self.node_list:
+            if self.my_ip != f_ip:
+                threading.Thread(target=self.appendEntriesSend,args=(term, f_ip,data)).start()
 
-            if new_entries != []:
-                self.append_votes = 0
-                for f_ip in self.node_list:
-                    if self.my_ip != f_ip:
-                        threading.Thread(target=self.sendingAppend,args=(f_ip,data)).start()
+        if(self.append_votes>=ceil((len(self.node_list))/2)):
+            print("Got enough votes to commit")
+            self.sendCommitMsg()
+        
 
-                if(self.append_votes>=ceil((len(self.node_list))/2)):
-                    print("Got enough votes to commit")
-                    self.appendToLog(data)
-                    # self.sendCommitMsg(data)
-            self.append_votes = 0
-
-            # plain heartbeat. This is called by thread with for loop, so no looping
-            if new_entries == []:
-                try:
-                    res = requests.post(f"http://{i}:5000/hearbeat",json=data,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
-                except Exception as e:
-                    print(f"Heartbeat sending to {i} failed")
-
-            
-
-    def sendCommitMsg(self, data):
-        pass
-
-    
-    def sendingAppend(self,i,data):
-        turn = 0
-        res = None
-        while not res and turn<3:
-            try:
-                res = requests.post(f"http://{i}:5000/hearbeat",json=data,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
-                res=res.json()
-                if res['success']:
-                    # print("incrementing vote from  votes = ",self.votes)
-                    self.incrementAppend(data)
-                    break
-            except Exception as e:
-                print(e)
-                # try to send requests 3 times
-                print(f"Vote requests to {i} by leader {self.my_ip} failed!!!")
-                turn += 1
-        return
 
     def incrementAppend(self, data):
         # with self.voting_lock:
@@ -139,7 +132,15 @@ class Node:
     def sendHeartbeat(self, term, i):
         heart_beat_time = time.time()
         while time.time()-heart_beat_time<=HEARTBEAT_TIMOUT and self.term == term and self.state == LEADER:
-            self.appendEntriesSend(term, i,[])
+            data = {
+                "term": term,
+                "leaderId" : self.current_leader,
+                "prevLogIndex" : self.next_index[i],
+                # "prevLogTerm" : self.log_file[self.next_index[i]][-1],  # FIX THIS LATER
+                "entries" : [],
+                "msg":f"sending message to follower {i}"
+            }
+            self.appendEntriesSend(term, i,data)
             time.sleep(HEARBEAT_INTERVAL/10)
             heart_beat_time = time.time()
         return
@@ -193,9 +194,15 @@ class Node:
                 "term" : self.term,
                 "success" : True
             }
-        
+                
         if self.prevLogIndex < data['prevLogIndex']:
             # follower is missing some entries
+            return {
+                "prevLogIndex" : self.prevLogIndex,
+                "term" : self.term,
+                "success" : False
+            }
+            
             
         
         
@@ -369,6 +376,7 @@ class Node:
         return last_line
 
     # should delete all logs until prevLogIndex
+    # change self.prevLogIndex
     def deleteFromLog(self, prevLogIndex):
         pass
 

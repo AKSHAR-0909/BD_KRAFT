@@ -191,7 +191,9 @@ else
 
 
 
-
+To do:
+- acked_length[follower] in every leader to keep track of logs that are acknowledged by follower
+- implement commit, delete from log, handleResponse
 
 
 
