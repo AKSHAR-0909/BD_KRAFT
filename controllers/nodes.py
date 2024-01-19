@@ -81,13 +81,15 @@ class Node:
                 res = requests.post(f"http://{i}:5000/messages",json=data,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
                 if res['success']:
                     # print("incrementing vote from  votes = ",self.votes)
-                    self.incrementAppend(data)
-                    self.handleResponse(i,res,data)
+                    if data!=[]:
+                        self.incrementAppend(data)
+                        self.handleResponse(i,res,data)
 
                 elif not res['success'] and res['term']==term:
                     #case where follower log is lesser than leader log
-                    data['prevLogIndex'] = res['prevLogIndex']
-                    self.appendEntriesSend(self,term,i,data)
+                    if data!=[]:
+                        data['prevLogIndex'] = res['prevLogIndex']
+                        self.appendEntriesSend(self,term,i,data)
 
                 elif not res['success'] and res['term']>term:
                     self.append_votes = 0
