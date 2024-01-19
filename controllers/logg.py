@@ -3,7 +3,7 @@ import json
 
 # # THIS IS AN EXAMPLE FILE TO WRITE INTO LOG AND PARSE THE LOG
 
-logging.basicConfig(filename="something.log", level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename="something.json", level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 data = {
                 "term": 28,
                 "leaderId" : "hi",
@@ -79,7 +79,8 @@ def get_last_line(file_path):
     return last_line
 
 # Usage
-file_path = 'something.log'
+file_path = 'something.json'
 last_line = get_last_line(file_path)
 log_entry = parse_log_line(last_line)
 print(log_entry)
+# logging.info("Hello")

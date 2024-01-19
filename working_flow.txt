@@ -197,8 +197,9 @@ To do:
 
 
 
-
-
+A solution:
+- store only uncommitted entries in all nodes' logs
+- pop after committing. Requires access to committed entries from leader
 
 
 
