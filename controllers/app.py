@@ -5,6 +5,7 @@ import requests
 import socket
 from nodes import *
 import uuid
+import json
 
 app=Flask("__name__")
 
@@ -35,7 +36,7 @@ def voteReq():
 @app.route("/messages",methods=['POST'])
 def heartbeat_handler():
     data = request.get_json()
-    res = myNode.AppendEntriesReceive(data)
+    res = jsonify(myNode.AppendEntriesReceive(data))
     return res
 
 @app.route("/handleBroker/registerBrokerRecord",methods=['POST'])
@@ -65,7 +66,7 @@ def registerBrokerRecord():
     #               json=Storage["RegisterBrokerRecords"]["records"][brokerID],headers={"Content-Type":"application/json"})
     res = myNode.appendToLog(newBrokerRecord)
     
-    return res
+    return internalUUID
     
 
 @app.route("/handleBroker/getActiveBrokers",methods=['GET'])
@@ -121,7 +122,7 @@ def createPatition():
     # Storage["PartitionRecord"]["records"][data['partitionId']]=newPartitionRecord
     res =  myNode.appendToLog(newPartitionRecord)
     
-    return res
+    return 0
 
 
 @app.route("/handleProducer/registerProducer")

@@ -12,8 +12,8 @@ FOLLOWER  = 0
 CANDIDATE = 1
 LEADER = 2
 REQUEST_TIMEOUT = 50
-HEARBEAT_INTERVAL = 0.1
-HEARTBEAT_TIMOUT = 2
+HEARBEAT_INTERVAL = 10
+HEARTBEAT_TIMOUT = 20
 
 
 class Node:
@@ -77,21 +77,29 @@ class Node:
     #Reason : since the response is the same for both and conditions again have to be checked
     def appendEntriesSend(self,term,i, data):
         if self.state==LEADER:
+            self.append_votes = 0
             try:
                 res = requests.post(f"http://{i}:5000/messages",json=data,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
-                if res['success']:
+                res = res.json()
+
+                print(f"Append Entry Send Passed success to {i} , {res}")
+
+                if res and res['success']:
                     # print("incrementing vote from  votes = ",self.votes)
+                    print(f"{res} from success i.e append succesfully")
                     if data!=[]:
                         self.incrementAppend(data)
                         self.handleResponse(i,res,data)
 
-                elif not res['success'] and res['term']==term:
+                elif res and not res['success'] and res['term']==term:
                     #case where follower log is lesser than leader log
+                    print(f"follower log lesser than leader log {res}")
                     if data!=[]:
                         data['prevLogIndex'] = res['prevLogIndex']
                         self.appendEntriesSend(self,term,i,data)
 
-                elif not res['success'] and res['term']>term:
+                elif res and not res['success'] and res['term']>term:
+                    print(f"leader transiting to follower {res}")
                     self.append_votes = 0
                     self.term = res['term']
                     self._transition_to_follower()
@@ -117,7 +125,6 @@ class Node:
 
 
     def x(self,term, new_entries):
-        self.append_votes = 0
         for y in new_entries['entries']:
             send_data = data
             send_data['entries'] = data['entries'][y]
@@ -150,8 +157,9 @@ class Node:
         # if self.state == LEADER:
             
     def appendToLog(self,record):
-        with self.log_lock:
-            self.local_log.append(record)
+        return
+        # with self.log_lock:
+        #     self.local_log.append(record)
 
     def sendHeartbeat(self, term, i):
         heart_beat_time = time.time()
@@ -165,7 +173,7 @@ class Node:
                 "msg":f"sending message to follower {i}"
             }
             self.appendEntriesSend(term, i,data)
-            time.sleep(HEARBEAT_INTERVAL/100)
+            time.sleep(HEARBEAT_INTERVAL/10)
             heart_beat_time = time.time()
         return
     
@@ -195,7 +203,9 @@ class Node:
 
 
     def AppendEntriesReceive(self,data):
+        print(f"{data} , {self.term}")
         if self.term > data['term']:
+            print("in self.term>data['term']")
             return {
                 "prevLogIndex" : self.prevLogIndex,
                 "term" : self.term,
@@ -204,6 +214,7 @@ class Node:
         
         if self.prevLogIndex < data['prevLogIndex']:
             # follower is missing some entries
+            print("in self.prevLogIndex < data['prevLogIndex']")
             return {
                 "prevLogIndex" : self.prevLogIndex,
                 "term" : self.term,
@@ -211,6 +222,7 @@ class Node:
             }
         self.init_timeout()
         if self.term < data['term']:
+            
             with self.term_loc:
                 self.term = data['term']
                 if self.state != FOLLOWER:
@@ -219,6 +231,7 @@ class Node:
             
 
         if self.prevLogIndex > data['prevLogIndex']:
+            print("in self.prevLogIndex > data['prevLogIndex']")
             # follower has more entries than leader
             self.deleteFromLog(data['prevLogIndex'])
             
@@ -227,13 +240,12 @@ class Node:
                 "term" : self.term,
                 "success" : True
             }
-                
-            
         # if appendEntries
         if data['entries'] != []:
             self.handleResponse(data)
-
+        print("sending true")
         return {
+            "prevLogIndex" : self.prevLogIndex,
             "term" : self.term,
             "success" : True
         }
@@ -250,6 +262,7 @@ class Node:
                     "voteGranted" : False
                 }
         elif self.next_index[self.my_ip]-1 > data['lastLogIndex']:
+            print(f"next index of ip : {self.my_ip} = {self.next_index[self.my_ip]}")
             return {
                     "term" : self.term,
                     "voteGranted" : False
@@ -263,7 +276,6 @@ class Node:
                 "term":self.term,
                 "voteGranted":True
             }
-        return None
 
     def _transition_to_candidate(self):
         print(f"{self.my_ip} - Transition to CANDIDATE")
@@ -353,8 +365,8 @@ class Node:
             data = {
                 "term":self.term,
                 "candidateId":self.my_ip,
-                "lastLogIndex" : self.next_index[self.my_ip]-1,
-                "lastLogTerm" : self.log_file[self.next_index[self.my_ip]-1]
+                "lastLogIndex" : self.next_index[self.my_ip]-1
+                # "lastLogTerm" : self.log_file[self.next_index[self.my_ip]-1]
                 # FIX LATER
             }
             
