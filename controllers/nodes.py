@@ -12,8 +12,8 @@ FOLLOWER  = 0
 CANDIDATE = 1
 LEADER = 2
 REQUEST_TIMEOUT = 50
-HEARBEAT_INTERVAL = 20
-HEARTBEAT_TIMOUT = 50
+HEARBEAT_INTERVAL = 0.1
+HEARTBEAT_TIMOUT = 2
 
 
 class Node:
@@ -52,7 +52,7 @@ class Node:
 
     def _initialize_next_index(self):
         for ips in self.node_list:
-            self.next_index[ips] = len(self.log_file)
+            self.next_index[ips] = 0
     #resetting the timeout everytime
     def reset_timeout(self):
         with self.last_msg_lock:
@@ -95,6 +95,7 @@ class Node:
                     self.append_votes = 0
                     self.term = res['term']
                     self._transition_to_follower()
+                    self.init_timeout()
                     
             except Exception as e:
                     print(f"Append Entry Message failed sending to {i} failed")
@@ -164,7 +165,7 @@ class Node:
                 "msg":f"sending message to follower {i}"
             }
             self.appendEntriesSend(term, i,data)
-            time.sleep(HEARBEAT_INTERVAL/10)
+            time.sleep(HEARBEAT_INTERVAL/100)
             heart_beat_time = time.time()
         return
     
@@ -201,13 +202,21 @@ class Node:
                 "success" : False
             }
         
+        if self.prevLogIndex < data['prevLogIndex']:
+            # follower is missing some entries
+            return {
+                "prevLogIndex" : self.prevLogIndex,
+                "term" : self.term,
+                "success" : False
+            }
+        self.init_timeout()
         if self.term < data['term']:
             with self.term_loc:
                 self.term = data['term']
                 if self.state != FOLLOWER:
                     self._transition_to_follower()
                     self.current_leader = data['leaderId']
-            self.init_timeout()
+            
 
         if self.prevLogIndex > data['prevLogIndex']:
             # follower has more entries than leader
@@ -219,13 +228,6 @@ class Node:
                 "success" : True
             }
                 
-        if self.prevLogIndex < data['prevLogIndex']:
-            # follower is missing some entries
-            return {
-                "prevLogIndex" : self.prevLogIndex,
-                "term" : self.term,
-                "success" : False
-            }
             
         # if appendEntries
         if data['entries'] != []:
@@ -296,7 +298,7 @@ class Node:
 
         with self.next_index_lock:
             for ips in self.node_list:
-                self.next_index[ips] = len(self.log_file)
+                self.next_index[ips] = 0
         return
         
     def sending_vote_req(self,i,data):
