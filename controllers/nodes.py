@@ -268,6 +268,7 @@ class Node:
                     "voteGranted" : False
                 }
         else:
+            self._transition_to_follower()
             self.voted_for['term'] = data['term']
             with self.term_loc:
                 self.term = data['term']
