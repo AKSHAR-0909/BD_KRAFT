@@ -35,7 +35,7 @@ def voteReq():
 @app.route("/heartbeat",methods=['POST'])
 def heartbeat_handler():
     data = request.get_json()
-    res = myNode.recv_heartbeat(data)
+    res = myNode.AppendEntriesReceive(data)
     return res
 
 @app.route("/handleBroker/registerBrokerRecord",methods=['POST'])

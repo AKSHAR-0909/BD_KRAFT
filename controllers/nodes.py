@@ -32,12 +32,15 @@ class Node:
         self.append_votes = 0
         self.prevLogIndex = 0
         self.current_leader = None
+        self.leader_commit_index = 0
+        self.local_log = [] # set to null after commiting all the entries
         self.heartbeat_thread = None
         self.voting_lock = threading.Lock()
         self.last_msg_lock = threading.Lock()
         self.election_lock = threading.Lock()
+        self.response_lock = threading.Lock()
         self.next_index_lock = threading.Lock()
-        self.leader_log_lock = threading.Lock()
+        self.log_lock = threading.Lock()
         self.term_loc = threading.Lock()
         self.log_file = log_file
         self.next_index = {}  #adding next index , initializing it 0 as of now
@@ -69,65 +72,83 @@ class Node:
 
     # ------------------------------------------------------------------------------------------------------
     # LEADER FUNCTIONS
+    
+    #Thinking to keep a common route for both append entry and heartbeat
+    #Reason : since the response is the same for both and conditions again have to be checked
     def appendEntriesSend(self,term,i, data):
         if self.state==LEADER:
-            if data['entries'] != []:
-                res = requests.post(f"http://{i}:5000/hearbeat",json=data,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
+            try:
+                res = requests.post(f"http://{i}:5000/messages",json=data,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
                 if res['success']:
                     # print("incrementing vote from  votes = ",self.votes)
                     self.incrementAppend(data)
-                    self.handleResponse(i,res)
-                else:
+                    self.handleResponse(i,res,data)
 
+                elif not res['success'] and res['term']==term:
+                    #case where follower log is lesser than leader log
+                    data['prevLogIndex'] = res['prevLogIndex']
+                    self.appendEntriesSend(self,term,i,data)
 
-            # plain heartbeat. This is called by thread with for loop, so no looping
-            if data['entries'] == []:
-                try:
-                    res = requests.post(f"http://{i}:5000/hearbeat",json=data,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
-                except Exception as e:
-                    print(f"Heartbeat sending to {i} failed")
+                elif not res['success'] and res['term']>term:
+                    self.append_votes = 0
+                    self.term = res['term']
+                    self._transition_to_follower()
+                    
+            except Exception as e:
+                    print(f"Append Entry Message failed sending to {i} failed")
+        #since looping is called from another function , i think it wouldnt matter much                
 
             
-    def handleResponse(self, follower_id, response):
+    def handleResponse(self, follower_id, response,data):
         # handle appendEntry response given by follower i 
+        with self.respone_lock:
+            for y in range(self.next_index[follower_id]-data['previousLogIndex'],len(data['entries'])):
+                send_data = data
+                send_data['entries'] = data['entries'][y]
+                self.appendToLog(self,send_data)
+                    
+        return
 
     def sendCommitMsg(self, data):
         pass
 
 
-    def x(self,term,i, new_entries):
-        data = {
-                "term": term,
-                "leaderId" : self.current_leader,
-                "prevLogIndex" : self.next_index[i],
-                # "prevLogTerm" : self.log_file[self.next_index[i]][-1],  # FIX THIS LATER
-                "entries" : new_entries,
-                "msg":f"sending message to follower {i}"
-            }
+    def x(self,term, new_entries):
         self.append_votes = 0
-        self.appendToLog()
+        for y in new_entries['entries']:
+            send_data = data
+            send_data['entries'] = data['entries'][y]
+            self.appendToLog(send_data)
         for f_ip in self.node_list:
+            data = {
+                    "term": term,
+                    "leaderId" : self.current_leader,
+                    "prevLogIndex" : self.next_index[f_ip],
+                    # "prevLogTerm" : self.log_file[self.next_index[i]][-1],  # FIX THIS LATER
+                    "entries" : new_entries,
+                    "msg":f"sending message to follower {f_ip}"
+                }
             if self.my_ip != f_ip:
                 threading.Thread(target=self.appendEntriesSend,args=(term, f_ip,data)).start()
 
-        if(self.append_votes>=ceil((len(self.node_list))/2)):
-            print("Got enough votes to commit")
-            self.sendCommitMsg()
-        
-
+        while(self.append_votes < ceil((len(self.node_list))/2)):
+            continue
+        self.sendCommitMsg(self.local_log)
+        #changed this because the the commit wouldnt happen and it will be checked until 
+        # the append votes are greater
+        #if only checks once , but a while loop would keep checkcing
 
     def incrementAppend(self, data):
         # with self.voting_lock:
         # will put lock here later
-        self.append_votes += 1
-        print("votes = ",self.append_votes)
+        with self.voting_lock:
+            self.append_votes += 1
+            print("responses for append Entries = ",self.append_votes)
         # if self.state == LEADER:
             
-    
     def appendToLog(self,record):
-        json_data = json.dumps(record)
-        logging.info(json_data)
-
+        with self.log_lock:
+            self.local_log.append(record)
 
     def sendHeartbeat(self, term, i):
         heart_beat_time = time.time()
@@ -170,7 +191,7 @@ class Node:
                 requests.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
 
 
-    def recv_heartbeat(self,data):
+    def AppendEntriesReceive(self,data):
         if self.term > data['term']:
             return {
                 "prevLogIndex" : self.prevLogIndex,
@@ -189,6 +210,7 @@ class Node:
         if self.prevLogIndex > data['prevLogIndex']:
             # follower has more entries than leader
             self.deleteFromLog(data['prevLogIndex'])
+            
             return {
                 "prevLogIndex" : self.prevLogIndex,
                 "term" : self.term,
@@ -203,13 +225,10 @@ class Node:
                 "success" : False
             }
             
-            
-        
-        
         # if appendEntries
         if data['entries'] != []:
-            self.appendToLog(data)
-        
+            self.handleResponse(data)
+
         return {
             "term" : self.term,
             "success" : True
