@@ -32,7 +32,7 @@ def voteReq():
     res = myNode.vote_response_rpc(data)
     return res
 
-@app.route("/heartbeat",methods=['POST'])
+@app.route("/messages",methods=['POST'])
 def heartbeat_handler():
     data = request.get_json()
     res = myNode.AppendEntriesReceive(data)
