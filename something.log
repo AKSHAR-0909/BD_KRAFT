@@ -5,3 +5,4 @@
 2024-01-16 12:19:46,822 - INFO - {"term": 28, "leaderId": "hi", "prevLogIndex": 36, "entries": ["b", "ab", "f"]}
 2024-01-16 12:20:10,222 - INFO - {"term": 28, "leaderId": "hi", "prevLogIndex": 36, "entries": ["b", "ab", "f"]}
 2024-01-16 12:20:23,902 - INFO - {"term": 28, "leaderId": "hi", "prevLogIndex": 36, "entries": ["b", "ab", "f"]}
+2024-01-19 12:36:17,099 - INFO - {"term": 28, "leaderId": "hi", "prevLogIndex": 37, "entries": ["anagha", "is", "the","best"]}
