@@ -93,29 +93,28 @@ class Node:
                 print(f"Append Entry Send Passed success to {i} , {res}")
 
                 if res and res['success']:
-                    # print("incrementing vote from  votes = ",self.votes)
-                    # print(f"{res} from success i.e append succesfully")
+                    print("incrementing vote from  votes = ",self.votes)
+                    print(f"{res} from success i.e append succesfully")
                     if data!=[]:
                         self.incrementAppend(data)
                         self.handleResponse(i,res,data)
 
                 elif res and not res['success'] and res['term']==term:
                     #case where follower log is lesser than leader log
-                    # print(f"follower log lesser than leader log {res}")
+                    print(f"follower log lesser than leader log {res}")
                     if data!=[]:
                         data['prevLogIndex'] = res['prevLogIndex']
                         self.appendEntriesSend(self,term,i,data)
 
                 elif res and not res['success'] and res['term']>term:
-                    # print(f"leader transiting to follower {res}")
+                    print(f"leader transiting to follower {res}")
                     self.append_votes = 0
                     self.term = res['term']
                     self._transition_to_follower()
                     self.init_timeout()
                     
             except Exception as e:
-                pass
-                # print(f"Append Entry Message failed sending to {i} failed")
+                print(f"Append Entry Message failed sending to {i} failed")
         #since looping is called from another function , i think it wouldnt matter much                
 
             
@@ -251,7 +250,7 @@ class Node:
         if(self.current_leader==None):
             self.current_leader=data['leaderId']
 
-        # print(f"{data} , {self.term}")
+        print(f"{data} , {self.term}")
         if self.term > data['term']:
             print("in self.term>data['term']")
             return {
