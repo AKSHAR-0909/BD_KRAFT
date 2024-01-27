@@ -10,11 +10,11 @@ import json
 app=Flask("__name__")
 
 Storage={
-    "RegisterBrokerRecords":{"records":{},"timestamp":time.time()},
-    "TopicRecord":{"records":{},"timestamp":time.time()},
-    "PartitionRecord":{"records":{},"timestamp":time.time()},
-    "ProducerIdsRecord":{"records":{},"timestamp":time.time()},
-    "BrokerRegistrationChangeBrokerRecord":{"records":{},"timestamp":time.time()}
+    "RegisterBrokerRecords":{"records":[],"timestamp":time.time()},
+    "TopicRecord":{"records":[],"timestamp":time.time()},
+    "PartitionRecord":{"records":[],"timestamp":time.time()},
+    "ProducerIdsRecord":{"records":[],"timestamp":time.time()},
+    "BrokerRegistrationChangeBrokerRecord":{"records":[],"timestamp":time.time()}
 }
 
 my_ip =socket.gethostbyname(socket.gethostname())
@@ -42,31 +42,10 @@ def heartbeat_handler():
 @app.route("/handleBroker/registerBrokerRecord",methods=['POST'])
 def registerBrokerRecord():
     data=request.get_json()
-
-    internalUUID=str(uuid.uuid4())
-    brokerID=data['brokerId']
-    newBrokerRecord={
-        "type":"metadata",
-        "name":"RegisterBrokerRecord",
-        "fields":{
-            "internalUUID":internalUUID,
-            "brokerId":brokerID,
-            "brokerHost":data['brokerHost'],
-            "brokerPort":data['brokerPort'],
-            "securityProtocol":data["securityProtocol"],
-            "brokerStatus":data['brokerStatus'],
-            "epoch":0
-        },
-        "timestamp":time.time()
-    }
-    # Storage["RegisterBrokerRecords"]["records"][brokerID]=newBrokerRecord
-    # Storage["RegisterBrokerRecords"]["timestamp"]=time.time()
-    # print( Storage["RegisterBrokerRecords"]["records"][brokerID])
-    # requests.post("http://bd_kraft-observer-1:5000/logs/registerBrokerRecord",
-    #               json=Storage["RegisterBrokerRecords"]["records"][brokerID],headers={"Content-Type":"application/json"})
-    res = myNode.appendToLog(newBrokerRecord)
+    response_data=myNode.handleBrokerRegistration(data)
+    print(response_data)
+    return jsonify(response_data)
     
-    return internalUUID
     
 
 @app.route("/handleBroker/getActiveBrokers",methods=['GET'])

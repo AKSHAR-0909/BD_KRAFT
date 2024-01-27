@@ -5,6 +5,7 @@ import threading
 import time
 import random, requests
 from math import ceil
+import uuid
 
 MIN_TIMEOUT = 50
 MAX_TIMEOUT = 80
@@ -15,6 +16,13 @@ REQUEST_TIMEOUT = 50
 HEARBEAT_INTERVAL = 10
 HEARTBEAT_TIMOUT = 20
 
+Storage={
+    "RegisterBrokerRecords":{"records":[],"timestamp":time.time()},
+    "TopicRecord":{"records":[],"timestamp":time.time()},
+    "PartitionRecord":{"records":[],"timestamp":time.time()},
+    "ProducerIdsRecord":{"records":[],"timestamp":time.time()},
+    "BrokerRegistrationChangeBrokerRecord":{"records":[],"timestamp":time.time()}
+}
 
 class Node:
     
@@ -86,27 +94,28 @@ class Node:
 
                 if res and res['success']:
                     # print("incrementing vote from  votes = ",self.votes)
-                    print(f"{res} from success i.e append succesfully")
+                    # print(f"{res} from success i.e append succesfully")
                     if data!=[]:
                         self.incrementAppend(data)
                         self.handleResponse(i,res,data)
 
                 elif res and not res['success'] and res['term']==term:
                     #case where follower log is lesser than leader log
-                    print(f"follower log lesser than leader log {res}")
+                    # print(f"follower log lesser than leader log {res}")
                     if data!=[]:
                         data['prevLogIndex'] = res['prevLogIndex']
                         self.appendEntriesSend(self,term,i,data)
 
                 elif res and not res['success'] and res['term']>term:
-                    print(f"leader transiting to follower {res}")
+                    # print(f"leader transiting to follower {res}")
                     self.append_votes = 0
                     self.term = res['term']
                     self._transition_to_follower()
                     self.init_timeout()
                     
             except Exception as e:
-                    print(f"Append Entry Message failed sending to {i} failed")
+                pass
+                # print(f"Append Entry Message failed sending to {i} failed")
         #since looping is called from another function , i think it wouldnt matter much                
 
             
@@ -156,8 +165,44 @@ class Node:
             print("responses for append Entries = ",self.append_votes)
         # if self.state == LEADER:
             
-    def appendToLog(self,record):
-        return
+    def handleBrokerRegistration(self,data):
+        print(self.my_ip,self.current_leader)
+        if(self.my_ip!=self.current_leader):
+            print("***********************************************************")
+            print(self.current_leader)
+            requests.post(f"http://{self.current_leader}:5000/handleBroker/registerBrokerRecord",
+                              json=data,headers={"Content-Type":"application/json"})
+            return {"success":True}
+        else:
+            internalUUID=str(uuid.uuid4())
+            brokerID=data['brokerId']
+            newBrokerRecord={
+                "type":"metadata",
+                "name":"RegisterBrokerRecord",
+                "fields":{
+                    "internalUUID":internalUUID,
+                    "brokerId":brokerID,
+                    "brokerHost":data['brokerHost'],
+                    "brokerPort":data['brokerPort'],
+                    "securityProtocol":data["securityProtocol"],
+                    "brokerStatus":data['brokerStatus'],
+                    "epoch":0
+                },
+                "timestamp":time.time()
+            }
+
+            Storage["RegisterBrokerRecords"]["records"].append(newBrokerRecord)
+            Storage["RegisterBrokerRecords"]["timestamp"]=time.time()
+            print( Storage["RegisterBrokerRecords"]["records"])
+            newBrokerRecord["currentLeader"]=self.current_leader
+            newBrokerRecord["currentTerm"]=self.term
+            requests.post("http://bd_kraft-observer-1:5000/logs/registerBrokerRecord",
+                        json=newBrokerRecord,headers={"Content-Type":"application/json"})
+
+            return {"success":True,"internalUUID":internalUUID}
+            
+    def appendToLog(self,data):
+        pass
         # with self.log_lock:
         #     self.local_log.append(record)
 
@@ -203,7 +248,10 @@ class Node:
 
 
     def AppendEntriesReceive(self,data):
-        print(f"{data} , {self.term}")
+        if(self.current_leader==None):
+            self.current_leader=data['leaderId']
+
+        # print(f"{data} , {self.term}")
         if self.term > data['term']:
             print("in self.term>data['term']")
             return {

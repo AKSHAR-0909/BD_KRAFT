@@ -7,7 +7,7 @@ import uuid
 app=Flask("__name__")
 
 
-time.sleep(10)
+time.sleep(12)
 brokerHost=socket.gethostbyname(socket.gethostname())
 registerBrokerRecord={
     "brokerHost":brokerHost,
@@ -21,13 +21,8 @@ topic_store = {}
 
 print("sending",registerBrokerRecord)
 controller_ip = "bd_kraft-controller-1:5000"
-success = False
-while not success:
-    res=requests.post(f"http://{controller_ip}/handleBroker/registerBrokerRecord",json=registerBrokerRecord,headers={"Content-Type":"application/json"})
-    if res and not res['success']:
-        controller_ip = res['current_leader']
-    else:
-        success = True
+res=requests.post(f"http://{controller_ip}/handleBroker/registerBrokerRecord",json=registerBrokerRecord,headers={"Content-Type":"application/json"})
+print(res)
 
     
 @app.route("/TopicRecords")
