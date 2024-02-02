@@ -71,7 +71,7 @@ def createTopic():
         "timestamp": time.time() 
     }
     # Storage["TopicRecord"]["records"][topicName]=newTopicRecord
-    res = myNode.appendEntriesSend(topicName)
+    res = myNode.appendEntriesSend(topicName,"/handleTopic/createTopic")
     
     return res
 
@@ -99,7 +99,7 @@ def createPatition():
         "timestamp": time.time()
     }
     # Storage["PartitionRecord"]["records"][data['partitionId']]=newPartitionRecord
-    res =  myNode.appendToLog(newPartitionRecord)
+    res =  myNode.appendToLog(newPartitionRecord,"/handlePatition/createPatition")
     
     return 0
 
@@ -119,7 +119,7 @@ def registerProducer():
     }
     # Storage['ProducerIdsRecord']["records"][data['producerId']]=newProducerRecord
     # Storage['ProducerIdsRecord']['timestamp']=time.time()
-    res = myNode.appendToLog(newProducerRecord)
+    res = myNode.appendToLog(newProducerRecord,"/handleProducer/registerProducer")
 
 
 @app.route("/handleBroker/changeBrokerRecord")
@@ -137,7 +137,7 @@ def changeBrokerRecord():
         },
         "timestamp": time.time()
     }
-    res = myNode.appendToLog(newProducerRecord)
+    res = myNode.appendToLog(newProducerRecord,"/handleBroker/changeBrokerRecord")
 
     return res
     # Storage['ProducerIdsRecord']["records"][data['producerId']]=newProducerRecord

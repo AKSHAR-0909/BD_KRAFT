@@ -15,6 +15,7 @@ LEADER = 2
 REQUEST_TIMEOUT = 50
 HEARBEAT_INTERVAL = 10
 HEARTBEAT_TIMOUT = 20
+COMMIT_TIMEOUT = 3
 
 Storage={
     "RegisterBrokerRecords":{"records":[],"timestamp":time.time()},
@@ -43,6 +44,7 @@ class Node:
         self.leader_commit_index = 0
         self.local_log = [] # set to null after commiting all the entries
         self.heartbeat_thread = None
+        self.commit_index = 0
         self.voting_lock = threading.Lock()
         self.last_msg_lock = threading.Lock()
         self.election_lock = threading.Lock()
@@ -52,15 +54,15 @@ class Node:
         self.term_loc = threading.Lock()
         self.log_file = log_file
         self.next_index = {}  #adding next index , initializing it 0 as of now
-        self._initialize_next_index()
+        self._initialize_next_index(0)
         # self.setup_logger()
 
         self.match_index = [0 for _ in range(len(self.node_list))] # same reason
         self.init_timeout()
 
-    def _initialize_next_index(self):
+    def _initialize_next_index(self,index):
         for ips in self.node_list:
-            self.next_index[ips] = 0
+            self.next_index[ips] = index
     #resetting the timeout everytime
     def reset_timeout(self):
         with self.last_msg_lock:
@@ -98,7 +100,7 @@ class Node:
                     if data!=[]:
                         self.incrementAppend(data)
                         self.handleResponse(i,res,data)
-
+                        self.next_index[i] += 1
                 elif res and not res['success'] and res['term']==term:
                     #case where follower log is lesser than leader log
                     print(f"follower log lesser than leader log {res}")
@@ -117,27 +119,61 @@ class Node:
                 print(f"Append Entry Message failed sending to {i} failed")
         #since looping is called from another function , i think it wouldnt matter much                
 
-            
+    # donno function , done at some point not remembering 
     def handleResponse(self, follower_id, response,data):
         # handle appendEntry response given by follower i 
         with self.respone_lock:
-            for y in range(self.next_index[follower_id]-data['previousLogIndex'],len(data['entries'])):
+            for y in range(0,len(data['entries'])):
                 send_data = data
                 send_data['entries'] = data['entries'][y]
                 self.appendToLog(self,send_data)
                     
         return
+    
+    def commit(self,node_ip):
+        data = {
+            "term":self.term,
+            "leader_commit_index":self.commit_index
+        }
+        try:
+            res = requests.post(f"http://{node_ip}:5000/commit_msg",json=data,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
+            res = res.json()
+            if res and not res['success'] and res['term']>self.term:
+                print(f"leader transiting to follower {res}")
+                self.term = res['term']
+                self._transition_to_follower()
+                self.init_timeout()
+
+        except Exception as e:
+                print(f"Append Entry Message failed sending to {node_ip} failed")
 
     def sendCommitMsg(self, data):
-        pass
+        # db or file yet to be decided
+        # writing of commit entry
+
+        for f_ips in self.node_list:
+            threading.Thread(target=self.commit,args=(f_ips)).start()
+
+        
 
 
-    # creating threads in follower to send data to all followers using new entries
-    def x(self,term, new_entries):
-        for y in new_entries['entries']:
-            send_data = data
-            send_data['entries'] = data['entries'][y]
-            self.appendToLog(send_data)
+    def x(self,term, new_entries,path):
+        if self.state!=LEADER:
+            try:
+                res = requests.post(f"http://{self.current_leader}/5000/{path}",json=new_entries,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
+            except Exception as e:
+                print("error occured!!!")
+            return res
+        
+        send_data = {
+                    "term": term,
+                    "leaderId" : self.current_leader,
+                    "prevLogIndex" : self.prevLogIndex,
+                    # "prevLogTerm" : self.log_file[self.next_index[i]][-1],  # FIX THIS LATER
+                    "entries" : new_entries,
+                }
+        self.appendToLog(send_data)
+    
         for f_ip in self.node_list:
             data = {
                     "term": term,
@@ -147,12 +183,18 @@ class Node:
                     "entries" : new_entries,
                     "msg":f"sending message to follower {f_ip}"
                 }
+            
             if self.my_ip != f_ip:
                 threading.Thread(target=self.appendEntriesSend,args=(term, f_ip,data)).start()
-
+        st_commit_time = time.time()
+        flag = True
         while(self.append_votes < ceil((len(self.node_list))/2)):
+            if time.time()-st_commit_time>COMMIT_TIMEOUT:
+                flag = False
+                break
             continue
-        self.sendCommitMsg(self.local_log)
+        if flag:
+            self.sendCommitMsg(self.local_log)
         #changed this because the the commit wouldnt happen and it will be checked until 
         # the append votes are greater
         #if only checks once , but a while loop would keep checkcing
@@ -202,9 +244,10 @@ class Node:
             return {"success":True,"internalUUID":internalUUID}
             
     def appendToLog(self,data):
-        pass
-        # with self.log_lock:
-        #     self.local_log.append(record)
+        
+        with self.log_lock:
+            self.local_log.append(data)
+            self.prevLogIndex += 1
 
     def sendHeartbeat(self, term, i):
         heart_beat_time = time.time()
@@ -282,7 +325,7 @@ class Node:
             print("in self.prevLogIndex > data['prevLogIndex']")
             # follower has more entries than leader
             self.deleteFromLog(data['prevLogIndex'])
-            
+            self.appendToLog(data)
             return {
                 "prevLogIndex" : self.prevLogIndex,
                 "term" : self.term,
@@ -290,7 +333,7 @@ class Node:
             }
         # if appendEntries
         if data['entries'] != []:
-            self.handleResponse(data)
+            self.appendToLog(data)
         print("sending true")
         return {
             "prevLogIndex" : self.prevLogIndex,
@@ -354,6 +397,7 @@ class Node:
         self.state = LEADER
         self.current_leader = self.my_ip
         data={"ip":self.my_ip,"counter":0,"term":self.term}
+        self._initialize_next_index(self.prevLogIndex+1)
         requests.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
         self.startHearbeat(self.term)
 
