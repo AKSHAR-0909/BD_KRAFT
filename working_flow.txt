@@ -202,12 +202,11 @@ A solution:
 - pop after committing. Requires access to committed entries from leader
 
 
-
-
-
-
-        
-
+To do
+- broker sends all messages to only one controller, from where it gets routed to leader. If that one controller fails, we need to send it to some other
+- if follower index < leader index, leader has to send the previous entries 
+- in sendCommitMsg, commit the entries into a database
+- change appendToLog to x (renamed) while routing
         
 
 

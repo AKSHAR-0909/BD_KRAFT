@@ -132,6 +132,7 @@ class Node:
         pass
 
 
+    # creating threads in follower to send data to all followers using new entries
     def x(self,term, new_entries):
         for y in new_entries['entries']:
             send_data = data
@@ -246,6 +247,7 @@ class Node:
                 requests.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
 
 
+    # follower receiving append entries 
     def AppendEntriesReceive(self,data):
         if(self.current_leader==None):
             self.current_leader=data['leaderId']
@@ -269,7 +271,6 @@ class Node:
             }
         self.init_timeout()
         if self.term < data['term']:
-            
             with self.term_loc:
                 self.term = data['term']
                 if self.state != FOLLOWER:
