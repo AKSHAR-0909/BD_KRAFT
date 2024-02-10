@@ -207,7 +207,14 @@ To do
 - if follower index < leader index, leader has to send the previous entries 
 - in sendCommitMsg, commit the entries into a database
 - change appendToLog to x (renamed) while routing
-        
 
+02 February
+- as a message comes to leader, put it into list, and then send to each follower all logs from its previous index to the latest log (all together)
+- 
 
-
+10 February
+- fragment data into single single entries and send / receive?
+- so, next_index[follower_id] += len(entries)
+- in the case where follower logIndex is lesser than leader's, leader has to send from before
+- delete from log if follower has greater logIndex than leader
+- club multiple entries in leader when sending to follower

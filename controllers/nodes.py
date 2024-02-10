@@ -126,8 +126,7 @@ class Node:
             for y in range(0,len(data['entries'])):
                 send_data = data
                 send_data['entries'] = data['entries'][y]
-                self.appendToLog(self,send_data)
-                    
+                self.appendToLog(self,send_data)    
         return
     
     def commit(self,node_ip):
@@ -157,7 +156,7 @@ class Node:
         
 
 
-    def x(self,term, new_entries,path):
+    def x(self,term, new_entries, path):
         if self.state!=LEADER:
             try:
                 res = requests.post(f"http://{self.current_leader}/5000/{path}",json=new_entries,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
@@ -172,7 +171,8 @@ class Node:
                     # "prevLogTerm" : self.log_file[self.next_index[i]][-1],  # FIX THIS LATER
                     "entries" : new_entries,
                 }
-        self.appendToLog(send_data)
+        for y in range(0,len(send_data['entries'])):
+            self.appendToLog(send_data['entries'][y])
     
         for f_ip in self.node_list:
             data = {
@@ -195,6 +195,8 @@ class Node:
             continue
         if flag:
             self.sendCommitMsg(self.local_log)
+            if data['']=="Registerbroker":
+                self.handleBrokerRegistration()
         #changed this because the the commit wouldnt happen and it will be checked until 
         # the append votes are greater
         #if only checks once , but a while loop would keep checkcing
@@ -240,11 +242,11 @@ class Node:
             newBrokerRecord["currentTerm"]=self.term
             requests.post("http://bd_kraft-observer-1:5000/logs/registerBrokerRecord",
                         json=newBrokerRecord,headers={"Content-Type":"application/json"})
-
             return {"success":True,"internalUUID":internalUUID}
+        
+
             
     def appendToLog(self,data):
-        
         with self.log_lock:
             self.local_log.append(data)
             self.prevLogIndex += 1
