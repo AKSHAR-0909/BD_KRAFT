@@ -218,3 +218,8 @@ To do
 - in the case where follower logIndex is lesser than leader's, leader has to send from before
 - delete from log if follower has greater logIndex than leader
 - club multiple entries in leader when sending to follower
+
+12 February
+- in appendEntriesSend, send heartbeats and list of data object similarly
+- indicator of heartbeat or append entries?
+- in receivemessages (nodes.py), send data?

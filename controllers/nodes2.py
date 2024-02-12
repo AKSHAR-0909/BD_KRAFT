@@ -72,6 +72,11 @@ class Node:
                     "voteGranted" : False
                 }
         elif data['term']==self.term:
+            if self.voted_for["term"]==self.term and self.voted_for["candidateId"]==data["candidateId"]:
+                return {
+                    "term" : self.term,
+                    "voteGranted" : True
+                }
             return {
                     "term" : self.term,
                     "voteGranted" : False
@@ -94,6 +99,8 @@ class Node:
                 self._transition_to_follower()
             with self.term_loc:
                 self.term = data['term']
+            self.voted_for["candidateId"] = data["candidateId"]
+            self.voted_for["term"]=data["term"]
             return {
                 "term" : self.term,
                 "voteGranted" : True
@@ -101,12 +108,14 @@ class Node:
 
     # follower receiving append entries 
     def AppendEntriesReceive(self,data):
+        first_log = data[0]
+        print("first log is ",first_log)
         if(self.current_leader==None):
-            self.current_leader=data['leaderId']
+            self.current_leader=first_log['leaderId']
 
-        print(f"{data} , {self.term}")
+        print(f"{first_log} , {self.term}")
 
-        if self.term > data['term']:
+        if self.term > first_log['term']:
             print("in self.term>data['term']")
             return {
                 "prevLogIndex" : self.prevLogIndex,
@@ -116,9 +125,9 @@ class Node:
         
         if self.state != FOLLOWER:
             self._transition_to_follower()
-            self.term = data['term']
+            # self.term = data[-1]['term']
 
-        if self.prevLogIndex < data['prevLogIndex']:
+        if self.prevLogIndex < first_log['prevLogIndex']:
             # follower is missing some entries
             print("in self.prevLogIndex < data['prevLogIndex']")
             return {
@@ -129,12 +138,14 @@ class Node:
         
         self.init_timeout()            
 
-        if self.prevLogIndex > data['prevLogIndex']:
+        if self.prevLogIndex > first_log['prevLogIndex']:
             print("in self.prevLogIndex > data['prevLogIndex']")
             # follower has more entries than leader
             self.deleteFromLog(data['prevLogIndex'])
-            for y in range(0,len(data['entries'])):
-                self.appendToLog(data['entries'][y])
+            for y in range(0,len(data)):
+                self.appendToLog(data[y])
+                self.prevLogIndex = data[y]["prevLogIndex"]
+                self.prevLogTerm = data[y]["term"]
             return {
                 "prevLogIndex" : self.prevLogIndex,
                 "term" : self.term,
@@ -144,6 +155,8 @@ class Node:
         if data['entries'] != []:
             for y in range(0,len(data['entries'])):
                 self.appendToLog(data['entries'][y])
+                self.prevLogIndex = data[y]["prevLogIndex"]
+                self.prevLogTerm = data[y]["term"]
             print("sending true")
             return {
                 "prevLogIndex" : self.prevLogIndex,
@@ -158,6 +171,10 @@ class Node:
             self.log_file.append(entry)
             self.prevLogIndex += 1
 
+    # delete all logs after from _index
+    def deleteFromLog(self, from_index):
+        with self.log_lock:
+            self.log_file = self.log_file[:from_index]
 
     # -------------------------------------------------------------------------------------------------------------------------
     # AS CANDIDATE
@@ -171,7 +188,6 @@ class Node:
 
     #call increment vote from this function
     def vote_request_rpc(self,term):
-        # TODO: vote timeout
         # if self.state == CANDIDATE:  safe to compare term rather than state
         if self.term == term and self.state == CANDIDATE:
             data = {
@@ -222,6 +238,7 @@ class Node:
             if self.state == CANDIDATE:
                 if(self.votes>=ceil((len(self.node_list))/2)):
                     print()
+                    self.current_leader = self.my_ip
                     self._transition_to_leader()
         return
     
@@ -266,7 +283,7 @@ class Node:
                 "leaderId" : self.current_leader,
                 "prevLogIndex" : self.next_index[i],
                 # "prevLogTerm" : self.log_file[self.next_index[i]][-1],  # FIX THIS LATER
-                "entries" : [],
+                "entries" : None,
                 "msg":f"sending message to follower {i}"
             }
             self.appendEntriesSend(term, i,data)
@@ -274,16 +291,54 @@ class Node:
             heart_beat_time = time.time()
         return
     
+    # function to receive INDIVIDUAL messages from client and continue to appendEntriesSend
+    def receiveMessages(self, new_entry, path):
+        if self.state!=LEADER:
+            try:
+                res = requests.post(f"http://{self.current_leader}/5000/{path}",json=new_entry,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
+            except Exception as e:
+                print("error occured!!!")
+            return res
+        
+        leader_data = {
+                    "term": self.term,
+                    "leaderId" : self.current_leader,
+                    "prevLogIndex" : self.prevLogIndex,
+                    "prevLogTerm" : self.log_file[self.prevLogIndex][-1],  # FIX THIS LATER
+                    "entries" : new_entry,
+                }
+        self.appendToLog(leader_data)
     
+        for f_ip in self.node_list:
+            if self.my_ip != f_ip:
+                threading.Thread(target=self.appendEntriesSend,args=(self.term, f_ip,leader_data)).start()
+        st_commit_time = time.time()
+        flag = True
+        while(self.append_votes < ceil((len(self.node_list))/2)):
+            if time.time()-st_commit_time>COMMIT_TIMEOUT:
+                flag = False
+                break
+            continue
+        if flag:
+            self.sendCommitMsg(self.local_log)
+            # if new_entry['']=="Registerbroker":
+            #     self.handleBrokerRegistration()
+        #changed this because the the commit wouldnt happen and it will be checked until 
+        # the append votes are greater
+        #if only checks once , but a while loop would keep checkcing
+
 
     # to send data from either appendEntries or heartbeats. 
     # here to ith follower
+    # hOrA is 0 if heartbeat and 1 if ae
     def appendEntriesSend(self,term,i, data):
         if self.state==LEADER:
+            # data = self.log_file[self.next_index[i]]
             self.append_votes = 0
             try:
                 # FRAGMENT DATA INTO PARTS?
-                res = requests.post(f"http://{i}:5000/messages",json=data,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
+                to_send = self.log_file[self.next_index[i]:]
+                res = requests.post(f"http://{i}:5000/messages",json=to_send,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
                 res = res.json()
 
                 print(f"Append Entry Send Passed success to {i} , {res}")

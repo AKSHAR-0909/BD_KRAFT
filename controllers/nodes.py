@@ -155,37 +155,27 @@ class Node:
 
         
 
-
-    def x(self,term, new_entries, path):
+    # function to receive INDIVIDUAL messages from client and continue to appendEntriesSend
+    def receiveMessages(self,term, new_entry, path):
         if self.state!=LEADER:
             try:
-                res = requests.post(f"http://{self.current_leader}/5000/{path}",json=new_entries,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
+                res = requests.post(f"http://{self.current_leader}/5000/{path}",json=new_entry,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
             except Exception as e:
                 print("error occured!!!")
             return res
         
-        send_data = {
+        leader_data = {
                     "term": term,
                     "leaderId" : self.current_leader,
                     "prevLogIndex" : self.prevLogIndex,
-                    # "prevLogTerm" : self.log_file[self.next_index[i]][-1],  # FIX THIS LATER
-                    "entries" : new_entries,
+                    "prevLogTerm" : self.log_file[self.prevLogIndex][-1],  # FIX THIS LATER
+                    "entries" : new_entry,
                 }
-        for y in range(0,len(send_data['entries'])):
-            self.appendToLog(send_data['entries'][y])
+        self.appendToLog(leader_data)
     
         for f_ip in self.node_list:
-            data = {
-                    "term": term,
-                    "leaderId" : self.current_leader,
-                    "prevLogIndex" : self.next_index[f_ip],
-                    # "prevLogTerm" : self.log_file[self.next_index[i]][-1],  # FIX THIS LATER
-                    "entries" : new_entries,
-                    "msg":f"sending message to follower {f_ip}"
-                }
-            
             if self.my_ip != f_ip:
-                threading.Thread(target=self.appendEntriesSend,args=(term, f_ip,data)).start()
+                threading.Thread(target=self.appendEntriesSend,args=(term, f_ip)).start()
         st_commit_time = time.time()
         flag = True
         while(self.append_votes < ceil((len(self.node_list))/2)):
@@ -248,8 +238,13 @@ class Node:
             
     def appendToLog(self,data):
         with self.log_lock:
-            self.local_log.append(data)
+            self.log_file.append(data)
             self.prevLogIndex += 1
+
+    # delete all logs after from _index
+    def deleteFromLog(self, from_index):
+        with self.log_lock:
+            self.log_file = self.log_file[:from_index]
 
     def sendHeartbeat(self, term, i):
         heart_beat_time = time.time()
