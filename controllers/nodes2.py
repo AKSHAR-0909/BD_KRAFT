@@ -66,7 +66,9 @@ class Node:
 
 
     def vote_response_rpc(self,data):
+
         if self.term > data['term'] or self.state==LEADER: # if the follower term > candidate
+                self.
                 return {
                     "term" : self.term,
                     "voteGranted" : False
@@ -165,7 +167,7 @@ class Node:
             self.deleteFromLog(data['prevLogIndex'])
             for y in range(0,len(data)):
                 self.appendToLog(data[y])
-                self.prevLogIndex = data[y]["prevLogIndex"]
+                # self.prevLogIndex = data[y]["prevLogIndex"]
                 self.prevLogTerm = data[y]["term"]
             return {
                 "prevLogIndex" : self.prevLogIndex,
@@ -186,11 +188,11 @@ class Node:
             } '''
         return 
     
-    def appendToLog(self,data):
+    def appendToLog(self,data,term):
         with self.log_lock:
-            entry = {"index":self.prevLogIndex, "term":self.term, "record":data}
-            self.log_file.append(entry)
-            self.prevLogIndex += 1
+                entry = {"term":term, "record":data}
+                self.log_file.append(entry)
+                self.prevLogIndex += 1
 
     # delete all logs after from _index
     def deleteFromLog(self, from_index):
@@ -321,18 +323,18 @@ class Node:
                 print("error occured!!!")
             return res
         
+        self.appendToLog(leader_data)
         leader_data = {
                     "term": self.term,
                     "leaderId" : self.current_leader,
                     "prevLogIndex" : self.prevLogIndex,
-                    "prevLogTerm" : self.log_file[self.prevLogIndex][-1],  # FIX THIS LATER
+                    "prevLogTerm" : self.log_file[self.prevLogIndex]["term"], 
                     "entries" : new_entry,
                 }
-        self.appendToLog(leader_data)
     
         for f_ip in self.node_list:
             if self.my_ip != f_ip:
-                threading.Thread(target=self.appendEntriesSend,args=(self.term, f_ip,leader_data)).start()
+                threading.Thread(target=self.appendEntriesSend,args=(self.term, f_ip,1)).start()
         st_commit_time = time.time()
         flag = True
         while(self.append_votes < ceil((len(self.node_list))/2)):
