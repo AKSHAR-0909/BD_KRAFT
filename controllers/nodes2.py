@@ -15,7 +15,9 @@ LEADER = 2
 REQUEST_TIMEOUT = 50
 HEARBEAT_INTERVAL = 10
 HEARTBEAT_TIMOUT = 20
+VOTING_TIMEOUT = 20
 COMMIT_TIMEOUT = 3
+
 
 class Node:
     
@@ -140,7 +142,8 @@ class Node:
 
         print(f"{first_log} , {self.term}")
 
-        if self.term > first_log['term']:
+        self.init_timeout()
+        if self.term > last_log['term']:
             print("in self.term>data['term']")
             return {
                 "prevLogIndex" : self.prevLogIndex,
@@ -160,42 +163,49 @@ class Node:
                 "term" : self.term,
                 "success" : False
             }
-        
-        self.init_timeout()            
 
-        if self.prevLogIndex > first_log['prevLogIndex']:
+        if self.prevLogIndex >= first_log['prevLogIndex']:
             print("in self.prevLogIndex > data['prevLogIndex']")
             # follower has more entries than leader
-            self.deleteFromLog(data['prevLogIndex'])
-            for y in range(0,len(data)):
-                self.appendToLog(data[y])
-                # self.prevLogIndex = data[y]["prevLogIndex"]
-                self.prevLogTerm = data[y]["term"]
-            return {
-                "prevLogIndex" : self.prevLogIndex,
-                "term" : self.term,
-                "success" : True
-            }
+            index = -1
+            if first_log['entries'] and self.prevLogIndex+1 > first_log['prevLogIndex']:
+                index = min(self.prevLogIndex+1,first_log['prevLogIndex']+len(data))-1
+
+                if self.log[index]["term"]!= data[index-first_log['prevLogIndex']]:
+                    self.deleteFromLog(first_log['prevLogIndex'])
+
+            # commented because its redundant
+                    
+            # if first_log['prevLogIndex'] + len(data) > self.prevLogIndex+1:
+            #     prevind = self.prevLogIndex
+            #     for y in range(prevind-first_log['prevLogIndex'],len(data)):
+            #         self.appendToLog(data[y])
+                    # self.prevLogIndex = data[y]["prevLogIndex"]
+            
+            # return {
+            #     "prevLogIndex" : self.prevLogIndex,
+            #     "term" : self.term,
+            #     "success" : True
+            # }
         # if appendEntries
-        if len(data[0]['entries']):
-            # for y in range(0,len(data['entries'])):
-            #     self.appendToLog(data[y]['entries'])
-            #     self.prevLogIndex = data[y]["prevLogIndex"]
-            #     self.prevLogTerm = data[y]["term"]
-            for y in range(len(data)):
-                pass
-            print("sending true")
-            return {
-                "prevLogIndex" : self.prevLogIndex,
-                "term" : self.term,
-                "success" : True
-            } 
+        if first_log['entries']: 
+            if first_log['prevLogIndex'] + len(data) > self.prevLogIndex+1:
+                    prevind = self.prevLogIndex
+                    for y in range(prevind-first_log['prevLogIndex'],len(data)):
+                        self.appendToLog(data[y])
+            
+        print("sending true")
+        return {
+            "prevLogIndex" : self.prevLogIndex,
+            "term" : self.term,
+            "success" : True
+        } 
+    
         return 
     
     def appendToLog(self,data,term):
         with self.log_lock:
-                entry = {"term":term, "record":data}
-                self.log_file.append(entry)
+                self.log_file.append(data)
                 self.prevLogIndex += 1
 
     # delete all logs after from _index
@@ -303,14 +313,7 @@ class Node:
     def sendHeartbeat(self, term, i):
         heart_beat_time = time.time()
         while time.time()-heart_beat_time<=HEARTBEAT_TIMOUT and self.term == term and self.state == LEADER:
-            data = {
-                "term": term,
-                "leaderId" : self.current_leader,
-                "prevLogIndex" : self.next_index[i],
-                "prevLogTerm" : self.log_file[self.next_index[i]],
-                "entries" : None,
-                "msg":f"sending message to follower {i}"
-            }
+            
             self.appendEntriesSend(term, i,0)
             time.sleep(HEARBEAT_INTERVAL/10)
             heart_beat_time = time.time()
@@ -325,14 +328,15 @@ class Node:
                 print("error occured!!!")
             return res
         
-        self.appendToLog(leader_data)
         leader_data = {
                     "term": self.term,
                     "leaderId" : self.current_leader,
                     "prevLogIndex" : self.prevLogIndex,
                     "prevLogTerm" : self.log_file[self.prevLogIndex]["term"], 
-                    "entries" : new_entry,
+                    "entries" : [new_entry],
+                    "leaderCommit": self.commit_index
                 }
+        self.appendToLog(leader_data)
     
         for f_ip in self.node_list:
             if self.my_ip != f_ip:
@@ -360,6 +364,7 @@ class Node:
         if self.state==LEADER:
             # data = self.log_file[self.next_index[i]]
             self.append_votes = 0
+            to_send = []
             try:
                 if hOrA:
                     to_send = self.log_file[self.next_index[i]:]
@@ -369,8 +374,9 @@ class Node:
                     "leaderId" : self.current_leader,
                     "prevLogIndex" : self.next_index[i],
                     # "prevLogTerm" : self.log_file[self.next_index[i]][-1],  # FIX THIS LATER
-                    "entries" : None,
-                    "msg":f"sending message to follower {i}"
+                    "entries" : [],
+                    # "msg":f"sending message to follower {i}"
+                    "leaderCommit":self.commit_index
                     }
                     to_send = [data]
                 res = requests.post(f"http://{i}:5000/messages",json=to_send,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
@@ -385,15 +391,17 @@ class Node:
                     if hOrA:
                         self.incrementAppend(data)
                         # self.handleResponse(i,res,data)
-                        self.next_index[i] = self.prevLogIndex + len(to_send)     # or number of entries?
+                        with self.next_index_lock:
+                            self.next_index[i] = self.prevLogIndex + len(to_send)     # or number of entries?
                         
                 elif res and not res['success'] and res['term']==term:
                     # case where follower log is lesser than leader log prevIndex
                     print(f"follower log lesser than leader log {res}")
                     if hOrA:
-                        if self.next_index[i] > 0:
-                            self.next_index[i] = res["prevLogIndex"]
-                            self.appendEntriesSend(self,term,i,data)
+                        with self.next_index_lock:
+                            if self.next_index[i] > 0:
+                                self.next_index[i] = res["prevLogIndex"]
+                                self.appendEntriesSend(self,term,i,1)
 
                 elif res and not res['success'] and res['term']>term:
                     print(f"leader transiting to follower {res}")
