@@ -39,12 +39,13 @@ class Node:
         self.heartbeat_thread = None
         self.commit_index = 0
         self.voting_lock = threading.Lock()
-        self.last_msg_lock = threading.Lock()
+        # self.last_msg_lock = threading.Lock()
         self.election_lock = threading.Lock()
-        self.response_lock = threading.Lock()
+        # self.response_lock = threading.Lock()
         self.next_index_lock = threading.Lock()
         self.log_lock = threading.Lock()
         self.term_loc = threading.Lock()
+        self.append_lock = threading.Lock()
         self.log_file = log_file
         self.next_index = {}  #adding next index , initializing it 0 as of now
         self._initialize_next_index(0)
@@ -68,7 +69,7 @@ class Node:
     def vote_response_rpc(self,data):
 
         if self.term > data['term'] or self.state==LEADER: # if the follower term > candidate
-                self.
+    
                 return {
                     "term" : self.term,
                     "voteGranted" : False
@@ -112,29 +113,30 @@ class Node:
     def AppendEntriesReceive(self,data):
         first_log = data[0]
         last_log = data[-1]
-        if last_log["term"] >= self.term:
-            if self.state != FOLLOWER:
-                self._transition_to_follower()
-                self.current_leader = last_log["leaderId"]
-            self.term = last_log["term"]
+        # if last_log["term"] >= self.term:
+        #     if self.state != FOLLOWER:
+        #         self._transition_to_follower()
+        #         self.current_leader = last_log["leaderId"]
+        #     with self.term_loc:
+        #         self.term = last_log["term"]
 
-        if self.prevLogIndex > first_log['prevLogIndex']:
-                    print("in self.prevLogIndex > data['prevLogIndex']")
-                    # follower has more entries than leader
-                    self.deleteFromLog(data['prevLogIndex'])
-                    if self.prevLogTerm==first_log["prevLogTerm"]:
-                        for y in range(0,len(data)):
-                            self.appendToLog(data[y])
-                    else:
-                        return {
-                        "prevLogIndex" : self.prevLogIndex,
-                        "term" : self.term,
-                        "success" : False}
+        # if self.prevLogIndex >= first_log['prevLogIndex'] and (self.prevLogIndex==0 or self):
+        #             print("in self.prevLogIndex > data['prevLogIndex']")
+        #             # follower has more entries than leader
+        #             self.deleteFromLog(data['prevLogIndex'])
+        #             if self.prevLogTerm==first_log["prevLogTerm"]:
+        #                 for y in range(0,len(data)):
+        #                     self.appendToLog(data[y])
+        #             else:
+        #                 return {
+        #                 "prevLogIndex" : self.prevLogIndex,
+        #                 "term" : self.term,
+        #                 "success" : False}
         
-        if self.prevLogIndex == first_log["prevLogIndex"] and self.prevLogTerm==first_log["prevLogTerm"]:
-            for y in range(0,len(data)):
-                    self.appendToLog(data[y])
-        '''
+        # if self.prevLogIndex == first_log["prevLogIndex"] and self.prevLogTerm==first_log["prevLogTerm"]:
+        #     for y in range(0,len(data)):
+        #             self.appendToLog(data[y])
+        # '''
 
         print(f"{first_log} , {self.term}")
 
@@ -175,17 +177,19 @@ class Node:
                 "success" : True
             }
         # if appendEntries
-        if data['entries'] != []:
-            for y in range(0,len(data['entries'])):
-                self.appendToLog(data[y]['entries'])
-                self.prevLogIndex = data[y]["prevLogIndex"]
-                self.prevLogTerm = data[y]["term"]
+        if len(data[0]['entries']):
+            # for y in range(0,len(data['entries'])):
+            #     self.appendToLog(data[y]['entries'])
+            #     self.prevLogIndex = data[y]["prevLogIndex"]
+            #     self.prevLogTerm = data[y]["term"]
+            for y in range(len(data)):
+                pass
             print("sending true")
             return {
                 "prevLogIndex" : self.prevLogIndex,
                 "term" : self.term,
                 "success" : True
-            } '''
+            } 
         return 
     
     def appendToLog(self,data,term):
@@ -276,18 +280,16 @@ class Node:
         self._initialize_next_index(self.prevLogIndex+1)
         requests.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
         self.startHearbeat(self.term)
-
-        with self.next_index_lock:
-            for ips in self.node_list:
-                self.next_index[ips] = 0
+        # self._initialize_next_index(self.prevLogIndex)
         return
 
 
     # ------------------------------------------------------------------------------
     # LEADER
     def _initialize_next_index(self,index):
-        for ips in self.node_list:
-            self.next_index[ips] = index
+        with self.next_index_lock:
+            for ips in self.node_list:
+                self.next_index[ips] = index
         
     def startHearbeat(self,term):
         print("starting heatbeat!!!!")
@@ -380,22 +382,24 @@ class Node:
                     # if ith follower successfully put AppendEntries into its log
                     print("incrementing vote from  votes = ",self.votes)
                     print(f"{res} from success i.e append succesfully")
-                    if data!=[]:
+                    if hOrA:
                         self.incrementAppend(data)
                         # self.handleResponse(i,res,data)
-                        self.next_index[i] = self.prevLogIndex + 1     # or number of entries?
+                        self.next_index[i] = self.prevLogIndex + len(to_send)     # or number of entries?
                         
                 elif res and not res['success'] and res['term']==term:
                     # case where follower log is lesser than leader log prevIndex
                     print(f"follower log lesser than leader log {res}")
-                    if data!=[]:
-                        self.next_index[i] = res["prevLogIndex"]
-                        self.appendEntriesSend(self,term,i,data)
+                    if hOrA:
+                        if self.next_index[i] > 0:
+                            self.next_index[i] = res["prevLogIndex"]
+                            self.appendEntriesSend(self,term,i,data)
 
                 elif res and not res['success'] and res['term']>term:
                     print(f"leader transiting to follower {res}")
                     self.append_votes = 0
-                    self.term = res['term']
+                    with self.term_loc:
+                        self.term = res['term']
                     self._transition_to_follower()
                     
             except Exception as e:
