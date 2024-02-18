@@ -109,9 +109,30 @@ class Node:
     # follower receiving append entries 
     def AppendEntriesReceive(self,data):
         first_log = data[0]
-        print("first log is ",first_log)
-        if(self.current_leader==None):
-            self.current_leader=first_log['leaderId']
+        last_log = data[-1]
+        if last_log["term"] >= self.term:
+            if self.state != FOLLOWER:
+                self._transition_to_follower()
+                self.current_leader = last_log["leaderId"]
+            self.term = last_log["term"]
+
+        if self.prevLogIndex > first_log['prevLogIndex']:
+                    print("in self.prevLogIndex > data['prevLogIndex']")
+                    # follower has more entries than leader
+                    self.deleteFromLog(data['prevLogIndex'])
+                    if self.prevLogTerm==first_log["prevLogTerm"]:
+                        for y in range(0,len(data)):
+                            self.appendToLog(data[y])
+                    else:
+                        return {
+                        "prevLogIndex" : self.prevLogIndex,
+                        "term" : self.term,
+                        "success" : False}
+        
+        if self.prevLogIndex == first_log["prevLogIndex"] and self.prevLogTerm==first_log["prevLogTerm"]:
+            for y in range(0,len(data)):
+                    self.appendToLog(data[y])
+        '''
 
         print(f"{first_log} , {self.term}")
 
@@ -154,7 +175,7 @@ class Node:
         # if appendEntries
         if data['entries'] != []:
             for y in range(0,len(data['entries'])):
-                self.appendToLog(data['entries'][y])
+                self.appendToLog(data[y]['entries'])
                 self.prevLogIndex = data[y]["prevLogIndex"]
                 self.prevLogTerm = data[y]["term"]
             print("sending true")
@@ -162,7 +183,7 @@ class Node:
                 "prevLogIndex" : self.prevLogIndex,
                 "term" : self.term,
                 "success" : True
-            }
+            } '''
         return 
     
     def appendToLog(self,data):
@@ -282,11 +303,11 @@ class Node:
                 "term": term,
                 "leaderId" : self.current_leader,
                 "prevLogIndex" : self.next_index[i],
-                # "prevLogTerm" : self.log_file[self.next_index[i]][-1],  # FIX THIS LATER
+                "prevLogTerm" : self.log_file[self.next_index[i]],
                 "entries" : None,
                 "msg":f"sending message to follower {i}"
             }
-            self.appendEntriesSend(term, i,data)
+            self.appendEntriesSend(term, i,0)
             time.sleep(HEARBEAT_INTERVAL/10)
             heart_beat_time = time.time()
         return
@@ -331,13 +352,23 @@ class Node:
     # to send data from either appendEntries or heartbeats. 
     # here to ith follower
     # hOrA is 0 if heartbeat and 1 if ae
-    def appendEntriesSend(self,term,i, data):
+    def appendEntriesSend(self,term,i, hOrA):
         if self.state==LEADER:
             # data = self.log_file[self.next_index[i]]
             self.append_votes = 0
             try:
-                # FRAGMENT DATA INTO PARTS?
-                to_send = self.log_file[self.next_index[i]:]
+                if hOrA:
+                    to_send = self.log_file[self.next_index[i]:]
+                else: 
+                    data = {
+                    "term": term,
+                    "leaderId" : self.current_leader,
+                    "prevLogIndex" : self.next_index[i],
+                    # "prevLogTerm" : self.log_file[self.next_index[i]][-1],  # FIX THIS LATER
+                    "entries" : None,
+                    "msg":f"sending message to follower {i}"
+                    }
+                    to_send = [data]
                 res = requests.post(f"http://{i}:5000/messages",json=to_send,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
                 res = res.json()
 
@@ -350,15 +381,13 @@ class Node:
                     if data!=[]:
                         self.incrementAppend(data)
                         # self.handleResponse(i,res,data)
-                        self.next_index[i] += len(data['entries'])     # or number of entries?
+                        self.next_index[i] = self.prevLogIndex + 1     # or number of entries?
                         
                 elif res and not res['success'] and res['term']==term:
                     # case where follower log is lesser than leader log prevIndex
                     print(f"follower log lesser than leader log {res}")
                     if data!=[]:
                         self.next_index[i] = res["prevLogIndex"]
-                        # FIX THIS PART
-                        data['prevLogIndex'] = res['prevLogIndex']
                         self.appendEntriesSend(self,term,i,data)
 
                 elif res and not res['success'] and res['term']>term:

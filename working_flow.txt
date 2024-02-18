@@ -148,13 +148,27 @@ AppendTOLOG function
 
 AppendEntries Receiver
 
--if term(sent by leader)>current_term(follower) 
-    -- current_term = term
-    -- reset election timer
+Checks:
+term of leader, follower
+prevLogIndex
+term of last log entries
+
+-if term(leader) < current_term(follower)
+    --return false
+
+(else part:)
+-- transition to follower (if not)
+-- current_term = term
+-- reset election timer
  
---if term == current_term
-    --stay as follower
-    --current_leader = leaderID
+-if prevLogIndex(f) < prevLogIndex(l.first) (first entry sent by leader)
+    --return false
+
+-if prevLogIndex(f) > prevLogIndex(l.first)
+    -- if prevLogTerm(f) > prevLogTerm(l.first)
+        return false
+    --else
+        delete entries after prevLogIndex(l)
 
 -if len(new_entries) > 0 and len(log) > prefixlen
     -- do index =  min(len(log),prefixlen+len(new_entries))-1
