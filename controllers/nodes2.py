@@ -185,6 +185,7 @@ class Node:
                 if self.log[index]["term"]!= data[index-first_log['prevLogIndex']]:
                     self.deleteFromLog(first_log['prevLogIndex'])
 
+
             # commented because its redundant
                     
             # if first_log['prevLogIndex'] + len(data) > self.prevLogIndex+1:
@@ -198,6 +199,7 @@ class Node:
             #     "term" : self.term,
             #     "success" : True
             # }
+                    
         # if appendEntries
         if hOrA: 
             if first_log['prevLogIndex'] + len(data) > self.prevLogIndex+1:
@@ -205,6 +207,11 @@ class Node:
                     for y in range(prevind-first_log['prevLogIndex'],len(data)):
                         self.appendToLog(data[y])
             
+        # committing until leader commit
+        leader_commit = first_log["leaderCommit"]
+        if leader_commit > self.commit_index and leader_commit<=self.prevLogIndex:
+            self.commitEntries(leader_commit)
+
         print("sending true")
         return {
             "prevLogIndex" : self.prevLogIndex,
@@ -212,7 +219,6 @@ class Node:
             "success" : True
         } 
     
-        return 
     
     def appendToLog(self,data):
         with self.log_lock:
@@ -362,7 +368,6 @@ class Node:
         #     continue
         # if flag:
         #     self.commitEntries()
-        #     self.sendCommitMsg()
 
         
             # if new_entry['']=="Registerbroker":
@@ -371,18 +376,13 @@ class Node:
         # the append votes are greater
         #if only checks once , but a while loop would keep checkcing
 
-
-    def commitEntries(self):
-        for i in range(self.commit_index, len(self.log_file)):
+    # index is the index until which to be committed
+    def commitEntries(self, index):
+        for i in range(self.commit_index, index):
             json_data = json.dumps(self.log_file[i])
             logging.info(json_data)
+        self.commit_index = index
         
-    def sendCommitMsg(self):
-        to_send = {
-            # WHAT TO WRITE HERE??
-        }
-        res = requests.post(f"http://{i}:5000/messages",json=to_send,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
-
 
     # to send data from either appendEntries or heartbeats. 
     # here to ith follower
@@ -422,6 +422,7 @@ class Node:
                 print(f"{res} from success i.e append succesfully")
                 if hOrA:
                     self.incrementAppend(data)
+                    self.checkAppendVotes(res["prevLogIndex"])
                     # self.handleResponse(i,res,data)
                     with self.next_index_lock:
                         self.next_index[i] = self.prevLogIndex + len(to_send)     # or number of entries?
@@ -455,6 +456,11 @@ class Node:
         with self.voting_lock:
             self.append_votes += 1
             print("responses for appendEntries = ",self.append_votes)
+
+    def checkAppendVotes(self, index):
+        if(self.append_votes > ceil((len(self.node_list))/2)):
+            self.commitEntries(index)
+
                 
     def _transition_to_follower(self):
         print("becoming follower!!")
