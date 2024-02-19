@@ -86,12 +86,13 @@ class Node:
 
 
     def vote_response_rpc(self,data):
+        last_term = 0 if self.prevLogIndex==0 else self.local_log[self.prevLogIndex]['term']
         if self.term > data['term'] or self.state==LEADER: # if the follower term > candidate
                 return {
                     "term" : self.term,
                     "voteGranted" : False
                 }
-        elif data['term']==self.term:
+        if data['term']==self.term:
             if self.voted_for["term"]==self.term and self.voted_for["candidateId"]==data["candidateId"]:
                 return {
                     "term" : self.term,
@@ -102,30 +103,31 @@ class Node:
                     "voteGranted" : False
                 }
         
-        # elif self.prevLogTerm > data['lastLogTerm']:
-        #     print("request not granted because lastLogTerm smaller")
-        #     return {
-        #             "term" : self.term,
-        #             "voteGranted" : False
-        #         }
-
-        elif self.prevLogIndex > data['lastLogIndex']:
-            print(f"next index of ip : {self.my_ip} = {self.next_index[self.my_ip]}")
+        if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+            print("request not granted because lastLogTerm smaller")
             return {
                     "term" : self.term,
                     "voteGranted" : False
                 }
-        else:
-            if self.state != FOLLOWER:
-                self._transition_to_follower()
-            with self.term_loc:
-                self.term = data['term']
-            self.voted_for["candidateId"] = data["candidateId"]
-            self.voted_for["term"]=data["term"]
-            return {
-                "term" : self.term,
-                "voteGranted" : True
-            }
+        
+        # condition already satified
+        # elif self.prevLogIndex > data['lastLogIndex']:
+        #     print(f"next index of ip : {self.my_ip} = {self.next_index[self.my_ip]}")
+        #     return {
+        #             "term" : self.term,
+        #             "voteGranted" : False
+        #         }
+        
+        if self.state != FOLLOWER:
+            self._transition_to_follower()
+        with self.term_loc:
+            self.term = data['term']
+        self.voted_for["candidateId"] = data["candidateId"]
+        self.voted_for["term"]=data["term"]
+        return {
+            "term" : self.term,
+            "voteGranted" : True
+        }
 
     # follower receiving append entries 
     def AppendEntriesReceive(self,data):
@@ -180,7 +182,20 @@ class Node:
                 "term" : self.term,
                 "success" : False
             }
+        
+        #added these 2 cases
+        if first_log['lastLogIndex']!=0 and self.local_log[self.prevLogIndex]["term"]!= last_log['lastLogTerm']:
+            return {
+                "lastLogIndex" : self.prevLogIndex,
+                "term" : self.term ,
+                "success" : False
+            }
+        
+        if last_log['term'] > self.term:
+            with self.term_loc:
+                self.term = last_log['term']
 
+        
         if self.prevLogIndex >= first_log['lastLogIndex']:
             print("in self.prevLogIndex > data['lastLogIndex']")
             # follower has more entries than leader
