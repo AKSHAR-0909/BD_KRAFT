@@ -37,7 +37,7 @@ class Node:
         self.prevLogTerm = 0
         self.current_leader = None
         self.leader_commit_index = 0
-        self.log_file = [] # set to null after commiting all the entries
+        self.local_log = [] # set to null after commiting all the entries
         self.heartbeat_thread = None
         self.commit_index = 0
         self.voting_lock = threading.Lock()
@@ -51,7 +51,7 @@ class Node:
         self.log_file = log_file
         self.next_index = {}  #adding next index , initializing it 0 as of now
         self._initialize_next_index(0)
-        # self.setup_logger()
+        self.setup_logger()
 
         self.match_index = [0 for _ in range(len(self.node_list))] # same reason
         self.init_timeout()
@@ -77,11 +77,13 @@ class Node:
                 data={"ip":self.my_ip,"counter":abs(heartbeat_timeout-(time.time()-self.last_msg_time)),"term":self.term}
                 requests.post("http://bd_kraft-observer-1:5000/updateTimer",json=data,headers={"Content-Type": "application/json"})
 
+    
+    def setup_logger(self):
+        logging.basicConfig(filename=self.log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
     def vote_response_rpc(self,data):
-
         if self.term > data['term'] or self.state==LEADER: # if the follower term > candidate
-    
                 return {
                     "term" : self.term,
                     "voteGranted" : False
@@ -97,12 +99,13 @@ class Node:
                     "voteGranted" : False
                 }
         
-        # elif self.prevLogTerm > data['lastLogTerm']:
-        #     print("request not granted because lastLogTerm smaller")
-        #     return {
-        #             "term" : self.term,
-        #             "voteGranted" : False
-        #         }
+        elif self.prevLogTerm > data['lastLogTerm']:
+            print("request not granted because lastLogTerm smaller")
+            return {
+                    "term" : self.term,
+                    "voteGranted" : False
+                }
+
         elif self.prevLogIndex > data['lastLogIndex']:
             print(f"next index of ip : {self.my_ip} = {self.next_index[self.my_ip]}")
             return {
@@ -123,7 +126,7 @@ class Node:
 
     # follower receiving append entries 
     def AppendEntriesReceive(self,data):
-        hOrA = 0 if data==[] else 1
+        hOrA = 0 if data[0]["entries"]==None else 1
         first_log = data[0]
         last_log = data[-1]
         # if last_log["term"] >= self.term:
@@ -222,13 +225,13 @@ class Node:
     
     def appendToLog(self,data):
         with self.log_lock:
-                self.log_file.append(data)
+                self.local_log.append(data)
                 self.prevLogIndex += 1
 
     # delete all logs after from_index
     def deleteFromLog(self, from_index):
         with self.log_lock:
-            self.log_file = self.log_file[:from_index]
+            self.local_log = self.local_log[:from_index]
         self.prevLogIndex = from_index
 
     # -------------------------------------------------------------------------------------------------------------------------
@@ -249,7 +252,7 @@ class Node:
                 "term":self.term,
                 "candidateId":self.my_ip,
                 "lastLogIndex" : self.prevLogIndex
-                # "lastLogTerm" : self.log_file[self.prevLogIndex[self.my_ip]-1]
+                # "lastLogTerm" : self.local_log[self.prevLogIndex[self.my_ip]-1]
             }
             for f_ip in self.node_list:
                 if self.my_ip != f_ip:
@@ -349,7 +352,7 @@ class Node:
                     "term": self.term,
                     "leaderId" : self.current_leader,
                     "prevLogIndex" : self.prevLogIndex,
-                    "prevLogTerm" : self.log_file[self.prevLogIndex]["term"], 
+                    "prevLogTerm" : self.local_log[self.prevLogIndex]["term"], 
                     "entries" : new_entry,
                     "leaderCommit": self.commit_index
                 }
@@ -379,7 +382,7 @@ class Node:
     # index is the index until which to be committed
     def commitEntries(self, index):
         for i in range(self.commit_index, index):
-            json_data = json.dumps(self.log_file[i])
+            json_data = json.dumps(self.local_log[i])
             logging.info(json_data)
         self.commit_index = index
         
@@ -396,14 +399,14 @@ class Node:
         try:
             if hOrA:
                 # all entries in a list
-                for j in self.log_file[self.next_index[i]:]:
+                for j in self.local_log[self.next_index[i]:]:
                     to_send.append(j)
             else: 
                 data = {
                 "term": term,
                 "leaderId" : self.current_leader,
                 "prevLogIndex" : self.next_index[i],
-                "prevLogTerm" : self.log_file[self.next_index[i]-1]["term"],  
+                "prevLogTerm" : self.local_log[self.next_index[i]-1]["term"],  
                 "entries" : [],
                 # "msg":f"sending message to follower {i}"
                 "leaderCommit":self.commit_index

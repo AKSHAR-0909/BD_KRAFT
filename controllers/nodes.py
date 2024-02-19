@@ -185,8 +185,8 @@ class Node:
             continue
         if flag:
             self.sendCommitMsg(self.local_log)
-            if data['']=="Registerbroker":
-                self.handleBrokerRegistration()
+            # if data['']=="Registerbroker":
+                # self.handleBrokerRegistration()
         #changed this because the the commit wouldnt happen and it will be checked until 
         # the append votes are greater
         #if only checks once , but a while loop would keep checkcing
