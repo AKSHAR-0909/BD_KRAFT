@@ -65,7 +65,10 @@ class Node:
         if not (self.timeout_thread and self.timeout_thread.is_alive()):
             self.timeout_thread = threading.Thread(target=self.check_timeout,args=())
             self.timeout_thread.start()  
-
+    def reset_timeout(self):
+        with self.last_msg_lock:
+            self.last_msg_time = time.time()    
+        return
             
     def check_timeout(self):
         print(f"Node {self.my_ip} timeout started!!!")
@@ -185,7 +188,7 @@ class Node:
             if hOrA and self.prevLogIndex+1 > first_log['lastLogIndex']:
                 index = min(self.prevLogIndex+1,first_log['lastLogIndex']+len(data))-1
 
-                if self.log[index]["term"]!= data[index-first_log['lastLogIndex']]:
+                if self.local_log[index]["term"]!= data[index-first_log['lastLogIndex']]['term']:
                     self.deleteFromLog(first_log['lastLogIndex'])
 
 
@@ -396,28 +399,28 @@ class Node:
         # heartbeat if no entries to send, else appendEntries
         hOrA = 0 if self.next_index[i] == self.prevLogIndex + 1 else 1
         to_send = []
-        try:
-            if hOrA:
-                # all entries in a list
-                for j in self.local_log[self.next_index[i]:]:
-                    to_send.append(j)
-            else: 
-                data = {
+        if hOrA:
+            # all entries in a list
+            for j in self.local_log[self.next_index[i]:]:
+                to_send.append(j)
+        else: 
+            data = {
                 "term": term,
                 "leaderId" : self.current_leader,
                 "lastLogIndex" : self.next_index[i],
                 # "prevLogTerm" : self.local_log[self.next_index[i]-1]["term"],  
-                "entries" : [],
+                "entries" : None,
                 # "msg":f"sending message to follower {i}"
                 "leaderCommit":self.commit_index
-                }
-                to_send.append(data)
+            }
+            to_send.append(data)
+        try:
             res = requests.post(f"http://{i}:5000/messages",json=to_send,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
             res = res.json()
-
+            print("res=",res)
             print(f"Append Entry Send Passed success to {i} , {res}")
-            if not hOrA:
-                return
+            # if not hOrA:
+            #     return
 
             if res and res['success']:
                 # if ith follower successfully put AppendEntries into its log
@@ -447,6 +450,7 @@ class Node:
                 self._transition_to_follower()
                 
         except Exception as e:
+            print(e)
             print(f"Append Entry Message failed sending to {i} failed")
     #since looping is called from another function , i think it wouldnt matter much  
                 
