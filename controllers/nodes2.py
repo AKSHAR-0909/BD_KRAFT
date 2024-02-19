@@ -99,12 +99,12 @@ class Node:
                     "voteGranted" : False
                 }
         
-        elif self.prevLogTerm > data['lastLogTerm']:
-            print("request not granted because lastLogTerm smaller")
-            return {
-                    "term" : self.term,
-                    "voteGranted" : False
-                }
+        # elif self.prevLogTerm > data['lastLogTerm']:
+        #     print("request not granted because lastLogTerm smaller")
+        #     return {
+        #             "term" : self.term,
+        #             "voteGranted" : False
+        #         }
 
         elif self.prevLogIndex > data['lastLogIndex']:
             print(f"next index of ip : {self.my_ip} = {self.next_index[self.my_ip]}")
@@ -160,7 +160,7 @@ class Node:
         if self.term > last_log['term']:
             print("in self.term>data['term']")
             return {
-                "prevLogIndex" : self.prevLogIndex,
+                "lastLogIndex" : self.prevLogIndex,
                 "term" : self.term,
                 "success" : False
             }
@@ -169,24 +169,24 @@ class Node:
             self._transition_to_follower()
             # self.term = data[-1]['term']
 
-        if self.prevLogIndex < first_log['prevLogIndex']:
+        if self.prevLogIndex < first_log['lastLogIndex']:
             # follower is missing some entries
-            print("in self.prevLogIndex < data['prevLogIndex']")
+            print("in self.prevLogIndex < data['lastLogIndex']")
             return {
-                "prevLogIndex" : self.prevLogIndex,
+                "lastLogIndex" : self.prevLogIndex,
                 "term" : self.term,
                 "success" : False
             }
 
-        if self.prevLogIndex >= first_log['prevLogIndex']:
-            print("in self.prevLogIndex > data['prevLogIndex']")
+        if self.prevLogIndex >= first_log['lastLogIndex']:
+            print("in self.prevLogIndex > data['lastLogIndex']")
             # follower has more entries than leader
             index = -1
-            if hOrA and self.prevLogIndex+1 > first_log['prevLogIndex']:
-                index = min(self.prevLogIndex+1,first_log['prevLogIndex']+len(data))-1
+            if hOrA and self.prevLogIndex+1 > first_log['lastLogIndex']:
+                index = min(self.prevLogIndex+1,first_log['lastLogIndex']+len(data))-1
 
-                if self.log[index]["term"]!= data[index-first_log['prevLogIndex']]:
-                    self.deleteFromLog(first_log['prevLogIndex'])
+                if self.log[index]["term"]!= data[index-first_log['lastLogIndex']]:
+                    self.deleteFromLog(first_log['lastLogIndex'])
 
 
             # commented because its redundant
@@ -205,9 +205,9 @@ class Node:
                     
         # if appendEntries
         if hOrA: 
-            if first_log['prevLogIndex'] + len(data) > self.prevLogIndex+1:
+            if first_log['lastLogIndex'] + len(data) > self.prevLogIndex+1:
                     prevind = self.prevLogIndex
-                    for y in range(prevind-first_log['prevLogIndex'],len(data)):
+                    for y in range(prevind-first_log['lastLogIndex'],len(data)):
                         self.appendToLog(data[y])
             
         # committing until leader commit
@@ -217,7 +217,7 @@ class Node:
 
         print("sending true")
         return {
-            "prevLogIndex" : self.prevLogIndex,
+            "lastLogIndex" : self.prevLogIndex,
             "term" : self.term,
             "success" : True
         } 
@@ -251,8 +251,8 @@ class Node:
             data = {
                 "term":self.term,
                 "candidateId":self.my_ip,
-                "lastLogIndex" : self.prevLogIndex
-                # "lastLogTerm" : self.local_log[self.prevLogIndex[self.my_ip]-1]
+                "lastLogIndex" : self.prevLogIndex,
+                # "lastLogTerm" : 0 if self.local_log[self.prevLogIndex[self.my_ip]-1]
             }
             for f_ip in self.node_list:
                 if self.my_ip != f_ip:
@@ -351,8 +351,8 @@ class Node:
         leader_data = {
                     "term": self.term,
                     "leaderId" : self.current_leader,
-                    "prevLogIndex" : self.prevLogIndex,
-                    "prevLogTerm" : self.local_log[self.prevLogIndex]["term"], 
+                    "lastLogIndex" : self.prevLogIndex,
+                    # "prevLogTerm" : self.local_log[self.prevLogIndex]["term"], 
                     "entries" : new_entry,
                     "leaderCommit": self.commit_index
                 }
@@ -405,8 +405,8 @@ class Node:
                 data = {
                 "term": term,
                 "leaderId" : self.current_leader,
-                "prevLogIndex" : self.next_index[i],
-                "prevLogTerm" : self.local_log[self.next_index[i]-1]["term"],  
+                "lastLogIndex" : self.next_index[i],
+                # "prevLogTerm" : self.local_log[self.next_index[i]-1]["term"],  
                 "entries" : [],
                 # "msg":f"sending message to follower {i}"
                 "leaderCommit":self.commit_index
@@ -425,7 +425,7 @@ class Node:
                 print(f"{res} from success i.e append succesfully")
                 if hOrA:
                     self.incrementAppend(data)
-                    self.checkAppendVotes(res["prevLogIndex"])
+                    self.checkAppendVotes(res["lastLogIndex"])
                     # self.handleResponse(i,res,data)
                     with self.next_index_lock:
                         self.next_index[i] = self.prevLogIndex + len(to_send)     # or number of entries?
@@ -436,7 +436,7 @@ class Node:
                 if hOrA:
                     with self.next_index_lock:
                         if self.next_index[i] > 0:
-                            self.next_index[i] = res["prevLogIndex"]
+                            self.next_index[i] = res["lastLogIndex"]
                             self.appendEntriesSend(self,term,i)
 
             elif res and not res['success'] and res['term']>term:
