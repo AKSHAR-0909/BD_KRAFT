@@ -30,6 +30,7 @@ def index():
 @app.route("/vote_Req",methods=['POST'])
 def voteReq():
     data=request.get_json()
+    # print("received msg from candidate",data)
     res = myNode.vote_response_rpc(data)
     return res
 

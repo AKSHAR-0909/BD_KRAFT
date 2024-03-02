@@ -24,7 +24,24 @@ controller_ip = "bd_kraft-controller-1:5000"
 res=requests.post(f"http://{controller_ip}/handleBroker/registerBrokerRecord",json=registerBrokerRecord,headers={"Content-Type":"application/json"})
 print(res)
 
-    
+def createTopics():
+    topicCount=20
+    for i in range(20):
+        #create topic and post
+        topicRecord=TopicTemplate(topicCount)
+        res=requests.post(f"http://{controller_ip}/handleBroker/createTopic",json=topicRecord
+                      ,headers={"Content-Type":"application/json"})
+        
+        # handle err
+        if(res): print(res)
+        else: print("failed sending topic info")
+
+        #send new topic info every 10s
+        time.sleep(10)
+
+def TopicTemplate(topicName):
+    return {"topic_name":f"topic{topicName}"}
+
 @app.route("/TopicRecords")
 def TopicRecord():
     topic_name =  f"kafka-topic{random.randint(1,100)}"
