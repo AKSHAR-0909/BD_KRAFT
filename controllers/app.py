@@ -3,7 +3,7 @@ import socket
 from flask import Flask,request,jsonify
 import requests
 import socket
-from nodes import *
+from nodes2 import *
 import uuid
 import json
 
@@ -18,7 +18,7 @@ Storage={
 }
 
 my_ip =socket.gethostbyname(socket.gethostname())
-node_list=[my_ip[:-1]+str(i) for i in range(3,7)]
+node_list=[my_ip[:-1]+str(i) for i in range(3,6)]
 
 myNode=Node(my_ip,node_list,"log.txt")
 
@@ -30,7 +30,7 @@ def index():
 @app.route("/vote_Req",methods=['POST'])
 def voteReq():
     data=request.get_json()
-    # print("received msg from candidate",data)
+    print("received msg from candidate",data)
     res = myNode.vote_response_rpc(data)
     return res
 
@@ -43,7 +43,7 @@ def heartbeat_handler():
 @app.route("/handleBroker/registerBrokerRecord",methods=['POST'])
 def registerBrokerRecord():
     data=request.get_json()
-    response_data=myNode.handleBrokerRegistration(data)
+    response_data=myNode.receiveMessages(data, "/handleBroker/registerBrokerRecord")
     print(response_data)
     return jsonify(response_data)
     

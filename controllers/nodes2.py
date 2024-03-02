@@ -41,7 +41,7 @@ class Node:
         self.heartbeat_thread = None
         self.commit_index = 0
         self.voting_lock = threading.Lock()
-        # self.last_msg_lock = threading.Lock()
+        self.last_msg_lock = threading.Lock()
         self.election_lock = threading.Lock()
         # self.response_lock = threading.Lock()
         self.next_index_lock = threading.Lock()
@@ -377,6 +377,8 @@ class Node:
         self.appendToLog(leader_data)
         self.append_votes = 1
     
+        # only append to log, no need to call threads to followers here bc that is done in heartbeat
+
         # for f_ip in self.node_list:
         #     if self.my_ip != f_ip:
         #         threading.Thread(target=self.appendEntriesSend,args=(self.term, f_ip,1)).start()

@@ -254,7 +254,7 @@ class Node:
                 "leaderId" : self.current_leader,
                 "prevLogIndex" : self.next_index[i],
                 # "prevLogTerm" : self.log_file[self.next_index[i]][-1],  # FIX THIS LATER
-                "entries" : [],
+                "entries" : None,
                 "msg":f"sending message to follower {i}"
             }
             self.appendEntriesSend(term, i,data)
@@ -329,7 +329,7 @@ class Node:
                 "success" : True
             }
         # if appendEntries
-        if data['entries'] != []:
+        if data['entries'] != None:
             self.appendToLog(data)
         print("sending true")
         return {

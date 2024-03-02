@@ -7,7 +7,7 @@ import uuid
 app=Flask("__name__")
 
 
-time.sleep(12)
+time.sleep(30)
 brokerHost=socket.gethostbyname(socket.gethostname())
 registerBrokerRecord={
     "brokerHost":brokerHost,

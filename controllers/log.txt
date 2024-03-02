@@ -1,0 +1,420 @@
+2024-03-02 13:04:14,439 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.22.0.3:5000
+2024-03-02 13:04:14,442 - INFO - [33mPress CTRL+C to quit[0m
+2024-03-02 13:04:15,139 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.22.0.4:5000
+2024-03-02 13:04:15,140 - INFO - [33mPress CTRL+C to quit[0m
+2024-03-02 13:04:15,705 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.22.0.5:5000
+2024-03-02 13:04:15,708 - INFO - [33mPress CTRL+C to quit[0m
+2024-03-02 13:04:19,752 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:04:19,767 - INFO - 172.22.0.3 - - [02/Mar/2024 13:04:19] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:04:19,749 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:04:19,769 - INFO - 172.22.0.3 - - [02/Mar/2024 13:04:19] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:04:19,777 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:04:19,777 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:04:19,781 - INFO - 172.22.0.3 - - [02/Mar/2024 13:04:19] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:04:19,781 - INFO - 172.22.0.3 - - [02/Mar/2024 13:04:19] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:04:19,789 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:04:19,794 - INFO - 172.22.0.3 - - [02/Mar/2024 13:04:19] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:04:19,788 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:04:19,795 - INFO - 172.22.0.3 - - [02/Mar/2024 13:04:19] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:04:21,087 - INFO - 172.22.0.5 - - [02/Mar/2024 13:04:21] "POST /vote_Req HTTP/1.1" 200 -
+2024-03-02 13:04:21,087 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:04:21,092 - INFO - 172.22.0.5 - - [02/Mar/2024 13:04:21] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:04:21,097 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:04:21,100 - INFO - 172.22.0.5 - - [02/Mar/2024 13:04:21] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:04:21,104 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:04:21,112 - INFO - 172.22.0.5 - - [02/Mar/2024 13:04:21] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:04:22,429 - INFO - 172.22.0.4 - - [02/Mar/2024 13:04:22] "POST /vote_Req HTTP/1.1" 200 -
+2024-03-02 13:04:22,429 - INFO - 172.22.0.4 - - [02/Mar/2024 13:04:22] "POST /vote_Req HTTP/1.1" 200 -
+2024-03-02 13:04:36,057 - ERROR - Exception on /handleBroker/registerBrokerRecord [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 46, in registerBrokerRecord
+    response_data=myNode.receiveMessages(data, "/handleBroker/registerBrokerRecord")
+  File "/code/nodes2.py", line 367, in receiveMessages
+    return res
+UnboundLocalError: local variable 'res' referenced before assignment
+2024-03-02 13:04:36,063 - INFO - 172.22.0.6 - - [02/Mar/2024 13:04:36] "[35m[1mPOST /handleBroker/registerBrokerRecord HTTP/1.1[0m" 500 -
+2024-03-02 13:04:36,662 - ERROR - Exception on /handleBroker/registerBrokerRecord [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 46, in registerBrokerRecord
+    response_data=myNode.receiveMessages(data, "/handleBroker/registerBrokerRecord")
+  File "/code/nodes2.py", line 367, in receiveMessages
+    return res
+UnboundLocalError: local variable 'res' referenced before assignment
+2024-03-02 13:04:36,666 - INFO - 172.22.0.7 - - [02/Mar/2024 13:04:36] "[35m[1mPOST /handleBroker/registerBrokerRecord HTTP/1.1[0m" 500 -
+2024-03-02 13:04:37,170 - ERROR - Exception on /handleBroker/registerBrokerRecord [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 46, in registerBrokerRecord
+    response_data=myNode.receiveMessages(data, "/handleBroker/registerBrokerRecord")
+  File "/code/nodes2.py", line 367, in receiveMessages
+    return res
+UnboundLocalError: local variable 'res' referenced before assignment
+2024-03-02 13:04:37,172 - INFO - 172.22.0.8 - - [02/Mar/2024 13:04:37] "[35m[1mPOST /handleBroker/registerBrokerRecord HTTP/1.1[0m" 500 -
+2024-03-02 13:07:40,237 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.23.0.3:5000
+2024-03-02 13:07:40,238 - INFO - [33mPress CTRL+C to quit[0m
+2024-03-02 13:07:40,978 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.23.0.4:5000
+2024-03-02 13:07:40,993 - INFO - [33mPress CTRL+C to quit[0m
+2024-03-02 13:07:41,448 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.23.0.5:5000
+2024-03-02 13:07:41,456 - INFO - [33mPress CTRL+C to quit[0m
+2024-03-02 13:07:46,928 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:07:46,935 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:07:46,947 - INFO - 172.23.0.5 - - [02/Mar/2024 13:07:46] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:07:46,951 - INFO - 172.23.0.5 - - [02/Mar/2024 13:07:46] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:07:46,958 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:07:46,957 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:07:46,961 - INFO - 172.23.0.5 - - [02/Mar/2024 13:07:46] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:07:46,961 - INFO - 172.23.0.5 - - [02/Mar/2024 13:07:46] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:07:46,973 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:07:46,980 - INFO - 172.23.0.5 - - [02/Mar/2024 13:07:46] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:07:46,977 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:07:46,989 - INFO - 172.23.0.5 - - [02/Mar/2024 13:07:46] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:07:47,141 - INFO - 172.23.0.3 - - [02/Mar/2024 13:07:47] "POST /vote_Req HTTP/1.1" 200 -
+2024-03-02 13:07:47,142 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:07:47,145 - INFO - 172.23.0.3 - - [02/Mar/2024 13:07:47] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:07:47,154 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:07:47,159 - INFO - 172.23.0.3 - - [02/Mar/2024 13:07:47] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:07:47,166 - ERROR - Exception on /vote_Req [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 34, in voteReq
+    res = myNode.vote_response_rpc(data)
+  File "/code/nodes2.py", line 106, in vote_response_rpc
+    if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+KeyError: 'lastLogTerm'
+2024-03-02 13:07:47,171 - INFO - 172.23.0.3 - - [02/Mar/2024 13:07:47] "[35m[1mPOST /vote_Req HTTP/1.1[0m" 500 -
+2024-03-02 13:07:47,757 - INFO - 172.23.0.4 - - [02/Mar/2024 13:07:47] "POST /vote_Req HTTP/1.1" 200 -
+2024-03-02 13:07:47,757 - INFO - 172.23.0.4 - - [02/Mar/2024 13:07:47] "POST /vote_Req HTTP/1.1" 200 -
+2024-03-02 13:08:19,933 - ERROR - Exception on /handleBroker/registerBrokerRecord [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 46, in registerBrokerRecord
+    response_data=myNode.receiveMessages(data, "/handleBroker/registerBrokerRecord")
+  File "/code/nodes2.py", line 367, in receiveMessages
+    return res
+UnboundLocalError: local variable 'res' referenced before assignment
+2024-03-02 13:08:19,936 - INFO - 172.23.0.6 - - [02/Mar/2024 13:08:19] "[35m[1mPOST /handleBroker/registerBrokerRecord HTTP/1.1[0m" 500 -
+2024-03-02 13:08:20,478 - ERROR - Exception on /handleBroker/registerBrokerRecord [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 46, in registerBrokerRecord
+    response_data=myNode.receiveMessages(data, "/handleBroker/registerBrokerRecord")
+  File "/code/nodes2.py", line 367, in receiveMessages
+    return res
+UnboundLocalError: local variable 'res' referenced before assignment
+2024-03-02 13:08:20,480 - INFO - 172.23.0.7 - - [02/Mar/2024 13:08:20] "[35m[1mPOST /handleBroker/registerBrokerRecord HTTP/1.1[0m" 500 -
+2024-03-02 13:08:21,079 - ERROR - Exception on /handleBroker/registerBrokerRecord [POST]
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 1455, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 869, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.10/dist-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+  File "/code/app.py", line 46, in registerBrokerRecord
+    response_data=myNode.receiveMessages(data, "/handleBroker/registerBrokerRecord")
+  File "/code/nodes2.py", line 367, in receiveMessages
+    return res
+UnboundLocalError: local variable 'res' referenced before assignment
+2024-03-02 13:08:21,081 - INFO - 172.23.0.8 - - [02/Mar/2024 13:08:21] "[35m[1mPOST /handleBroker/registerBrokerRecord HTTP/1.1[0m" 500 -
