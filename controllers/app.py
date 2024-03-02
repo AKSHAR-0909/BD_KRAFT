@@ -1,4 +1,4 @@
-from nodes import *
+# from nodes import *
 import socket
 from flask import Flask,request,jsonify
 import requests
@@ -32,18 +32,20 @@ def voteReq():
     data=request.get_json()
     print("received msg from candidate",data)
     res = myNode.vote_response_rpc(data)
+    print("Returning response", res)
     return res
 
 @app.route("/messages",methods=['POST'])
 def heartbeat_handler():
     data = request.get_json()
-    res = jsonify(myNode.AppendEntriesReceive(data))
+    res = (myNode.AppendEntriesReceive(data))
+    print("Response from follower is", res)
     return res
 
 @app.route("/handleBroker/registerBrokerRecord",methods=['POST'])
 def registerBrokerRecord():
     data=request.get_json()
-    response_data=myNode.receiveMessages(data, "/handleBroker/registerBrokerRecord")
+    response_data=myNode.receiveMessages(data, "handleBroker/registerBrokerRecord")
     print(response_data)
     return jsonify(response_data)
     

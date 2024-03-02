@@ -7,7 +7,7 @@ import uuid
 app=Flask("__name__")
 
 
-time.sleep(30)
+time.sleep(20)
 brokerHost=socket.gethostbyname(socket.gethostname())
 registerBrokerRecord={
     "brokerHost":brokerHost,
@@ -24,6 +24,7 @@ controller_ip = "bd_kraft-controller-1:5000"
 res=requests.post(f"http://{controller_ip}/handleBroker/registerBrokerRecord",json=registerBrokerRecord,headers={"Content-Type":"application/json"})
 print(res)
 
+
 def createTopics():
     topicCount=20
     for i in range(20):
@@ -38,6 +39,8 @@ def createTopics():
 
         #send new topic info every 10s
         time.sleep(10)
+
+createTopics()
 
 def TopicTemplate(topicName):
     return {"topic_name":f"topic{topicName}"}

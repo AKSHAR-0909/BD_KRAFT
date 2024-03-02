@@ -33,7 +33,7 @@ class Node:
         self.voted_for = {"term":None , "candidateId":None}
         self.votes = 0
         self.append_votes = 0
-        self.prevLogIndex = 0
+        self.prevLogIndex = -1
         self.prevLogTerm = 0
         self.current_leader = None
         self.leader_commit_index = 0
@@ -86,37 +86,26 @@ class Node:
 
 
     def vote_response_rpc(self,data):
-        last_term = 0 if self.prevLogIndex==0 else self.local_log[self.prevLogIndex]['term']
+        # last_term = 0 if self.prevLogIndex==-1 else self.local_log[self.prevLogIndex]['term']
+        print("Sending vote response to ", data['candidateId'])
         if self.term > data['term'] or self.state==LEADER: # if the follower term > candidate
                 return {
                     "term" : self.term,
                     "voteGranted" : False
                 }
         if data['term']==self.term:
+            print("Terms are equal")
             if self.voted_for["term"]==self.term and self.voted_for["candidateId"]==data["candidateId"]:
                 return {
                     "term" : self.term,
                     "voteGranted" : True
                 }
+            
+            print("Returning false to vote")
             return {
                     "term" : self.term,
                     "voteGranted" : False
                 }
-        
-        if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
-            print("request not granted because lastLogTerm smaller")
-            return {
-                    "term" : self.term,
-                    "voteGranted" : False
-                }
-        
-        # condition already satified
-        # elif self.prevLogIndex > data['lastLogIndex']:
-        #     print(f"next index of ip : {self.my_ip} = {self.next_index[self.my_ip]}")
-        #     return {
-        #             "term" : self.term,
-        #             "voteGranted" : False
-        #         }
         
         if self.state != FOLLOWER:
             self._transition_to_follower()
@@ -128,9 +117,29 @@ class Node:
             "term" : self.term,
             "voteGranted" : True
         }
+    
+        # -------------------------READD THIS
+        # if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+        #     print("request not granted because lastLogTerm smaller")
+        #     return {
+        #             "term" : self.term,
+        #             "voteGranted" : False
+        #         }
+        # --------------------------------------S
+        
+        # condition already satified
+        # elif self.prevLogIndex > data['lastLogIndex']:
+        #     print(f"next index of ip : {self.my_ip} = {self.next_index[self.my_ip]}")
+        #     return {
+        #             "term" : self.term,
+        #             "voteGranted" : False
+        #         }
+        
 
     # follower receiving append entries 
-    def AppendEntriesReceive(self,data):
+    def AppendEntriesReceive(self,data_json):
+        data = json.loads(data_json)
+        print("Received list of data is",data)
         hOrA = 0 if data[0]["entries"]==None else 1
         first_log = data[0]
         last_log = data[-1]
@@ -170,9 +179,12 @@ class Node:
                 "success" : False
             }
         
+        
         if self.state != FOLLOWER:
             self._transition_to_follower()
             # self.term = data[-1]['term']
+
+        self.current_leader = last_log['leaderId']
 
         if self.prevLogIndex < first_log['lastLogIndex']:
             # follower is missing some entries
@@ -182,22 +194,26 @@ class Node:
                 "term" : self.term,
                 "success" : False
             }
+        print("In follower, sending response2")
         
+        # ---------------------------READD THIS
         #added these 2 cases
-        if first_log['lastLogIndex']!=0 and self.local_log[self.prevLogIndex]["term"]!= last_log['lastLogTerm']:
-            return {
-                "lastLogIndex" : self.prevLogIndex,
-                "term" : self.term ,
-                "success" : False
-            }
+        # if first_log['lastLogIndex']!=0 and self.local_log[self.prevLogIndex]["term"]!= last_log['lastLogTerm']:
+        #     return {
+        #         "lastLogIndex" : self.prevLogIndex,
+        #         "term" : self.term ,
+        #         "success" : False
+        #     }
         
         if last_log['term'] > self.term:
             with self.term_loc:
                 self.term = last_log['term']
 
         
-        if self.prevLogIndex >= first_log['lastLogIndex']:
-            print("in self.prevLogIndex > data['lastLogIndex']")
+        if self.prevLogIndex > first_log['lastLogIndex']:
+            # print(self.local_log)
+            print("in self.prevLogIndex > data['lastLogIndex'], self.prevlog=", self.prevLogIndex)
+            print(f"Follower log index = {self.prevLogIndex} and leader = {first_log['lastLogIndex']}")
             # follower has more entries than leader
             index = -1
             if hOrA and self.prevLogIndex+1 > first_log['lastLogIndex']:
@@ -223,15 +239,17 @@ class Node:
                     
         # if appendEntries
         if hOrA: 
-            if first_log['lastLogIndex'] + len(data) > self.prevLogIndex+1:
+            if first_log['lastLogIndex'] + len(data) > self.prevLogIndex:
                     prevind = self.prevLogIndex
-                    for y in range(prevind-first_log['lastLogIndex'],len(data)):
+                    for y in range(prevind-first_log['lastLogIndex'], len(data)):
                         self.appendToLog(data[y])
             
         # committing until leader commit
         leader_commit = first_log["leaderCommit"]
         if leader_commit > self.commit_index and leader_commit<=self.prevLogIndex:
             self.commitEntries(leader_commit)
+
+        print("In follower, sending response3")
 
         print("sending true")
         return {
@@ -242,6 +260,7 @@ class Node:
     
     
     def appendToLog(self,data):
+        print("Appending to log")
         with self.log_lock:
                 self.local_log.append(data)
                 self.prevLogIndex += 1
@@ -283,7 +302,9 @@ class Node:
         while not res and turn<3:
             try:
                 res = requests.post(f"http://{i}:5000/vote_Req",json=data,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
-                res=res.json()
+                print(f"Response from {i} is {res}")
+                res = res.json()
+                print(f"Response from {i} is {res}")
                 if res['voteGranted']:
                     # print("incrementing vote from  votes = ",self.votes)
                     self.increment_vote()
@@ -359,10 +380,13 @@ class Node:
     
     # leader's function to receive INDIVIDUAL messages from client and append it to its log
     def receiveMessages(self, new_entry, path):
+        print("Received message from broker",new_entry)
+        print("Redirecting to",f"http://{self.current_leader}:5000/{path}")
         if self.state!=LEADER:
             try:
-                res = requests.post(f"http://{self.current_leader}/5000/{path}",json=new_entry,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
+                res = requests.post(f"http://{self.current_leader}:5000/{path}",json=new_entry,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
             except Exception as e:
+                print(e)
                 print("error occured!!!")
             return res
         
@@ -415,8 +439,10 @@ class Node:
             return
         # heartbeat if no entries to send, else appendEntries
         hOrA = 0 if self.next_index[i] == self.prevLogIndex + 1 else 1
+        print(f"While sending, next_i={self.next_index[i]} and prevlog = {self.prevLogIndex}")
         to_send = []
         if hOrA:
+            print("Leader log = ",self.local_log)
             # all entries in a list
             for j in self.local_log[self.next_index[i]:]:
                 to_send.append(j)
@@ -424,7 +450,7 @@ class Node:
             data = {
                 "term": term,
                 "leaderId" : self.current_leader,
-                "lastLogIndex" : self.next_index[i],
+                "lastLogIndex" : self.next_index[i]-1,
                 # "prevLogTerm" : self.local_log[self.next_index[i]-1]["term"],  
                 "entries" : None,
                 # "msg":f"sending message to follower {i}"
@@ -432,7 +458,8 @@ class Node:
             }
             to_send.append(data)
         try:
-            res = requests.post(f"http://{i}:5000/messages",json=to_send,headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
+            print("Sending to follower:" , json.dumps(to_send))
+            res = requests.post(f"http://{i}:5000/messages",json=json.dumps(to_send),headers={"Content-Type": "application/json"},timeout=REQUEST_TIMEOUT)
             res = res.json()
             print("res=",res)
             print(f"Append Entry Send Passed success to {i} , {res}")
@@ -442,10 +469,9 @@ class Node:
             if res and res['success']:
                 # if ith follower successfully put AppendEntries into its log
                 print("incrementing vote from  votes = ",self.votes)
-                print(f"{res} from success i.e append succesfully")
                 if hOrA:
-                    self.incrementAppend(data)
-                    self.checkAppendVotes(res["lastLogIndex"])
+                    self.incrementAppend()
+                    # self.checkAppendVotes(res["lastLogIndex"])
                     # self.handleResponse(i,res,data)
                     with self.next_index_lock:
                         self.next_index[i] = self.prevLogIndex + len(to_send)     # or number of entries?
@@ -453,11 +479,12 @@ class Node:
             elif res and not res['success'] and res['term']==term:
                 # case where follower log is lesser than leader log prevIndex
                 print(f"follower log lesser than leader log {res}")
+                print(self.local_log)
                 if hOrA:
                     with self.next_index_lock:
                         if self.next_index[i] > 0:
-                            self.next_index[i] = res["lastLogIndex"]
-                            self.appendEntriesSend(self,term,i)
+                            self.next_index[i] = res["lastLogIndex"] + 1
+                            self.appendEntriesSend(term,i)
 
             elif res and not res['success'] and res['term']>term:
                 print(f"leader transiting to follower {res}")

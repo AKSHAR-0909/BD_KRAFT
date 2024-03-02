@@ -1,3 +1,4 @@
+'''
 import re
 import json
 import logging
@@ -106,7 +107,7 @@ class Node:
                     print(f"follower log lesser than leader log {res}")
                     if data!=[]:
                         data['prevLogIndex'] = res['prevLogIndex']
-                        self.appendEntriesSend(self,term,i,data)
+                        self.appendEntriesSend(term,i,data)
 
                 elif res and not res['success'] and res['term']>term:
                     print(f"leader transiting to follower {res}")
@@ -511,4 +512,4 @@ class Node:
 
         
     
-    
+    '''
