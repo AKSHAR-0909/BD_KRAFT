@@ -86,7 +86,7 @@ class Node:
 
 
     def vote_response_rpc(self,data):
-        # last_term = 0 if self.prevLogIndex==-1 else self.local_log[self.prevLogIndex]['term']
+        last_term = 0 if self.prevLogIndex==-1 else self.local_log[self.prevLogIndex]['term']
         print("Sending vote response to ", data['candidateId'])
         if self.term > data['term'] or self.state==LEADER: # if the follower term > candidate
                 return {
@@ -107,6 +107,13 @@ class Node:
                     "voteGranted" : False
                 }
         
+        if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
+            print("request not granted because lastLogTerm smaller")
+            return {
+                    "term" : self.term,
+                    "voteGranted" : False
+                }
+
         if self.state != FOLLOWER:
             self._transition_to_follower()
         with self.term_loc:
@@ -118,28 +125,16 @@ class Node:
             "voteGranted" : True
         }
     
-        # -------------------------READD THIS
-        # if not ((data['lastLogTerm'] > last_term) or (data['lastLogTerm']==last_term and self.prevLogIndex+1 > data['lastLogIndex'])):
-        #     print("request not granted because lastLogTerm smaller")
-        #     return {
-        #             "term" : self.term,
-        #             "voteGranted" : False
-        #         }
-        # --------------------------------------S
         
-        # condition already satified
-        # elif self.prevLogIndex > data['lastLogIndex']:
-        #     print(f"next index of ip : {self.my_ip} = {self.next_index[self.my_ip]}")
-        #     return {
-        #             "term" : self.term,
-        #             "voteGranted" : False
-        #         }
         
 
     # follower receiving append entries 
     def AppendEntriesReceive(self,data_json):
         data = json.loads(data_json)
-        print("Received list of data is",data)
+        
+        # print("Received list of data is",data)
+        # print("Follower log is", self.local_log)
+
         hOrA = 0 if data[0]["entries"]==None else 1
         first_log = data[0]
         last_log = data[-1]
@@ -165,10 +160,11 @@ class Node:
         
         # if self.prevLogIndex == first_log["prevLogIndex"] and self.prevLogTerm==first_log["prevLogTerm"]:
         #     for y in range(0,len(data)):
-        #             self.appendToLog(data[y])
+        #     
+        #         self.appendToLog(data[y])
         # '''
 
-        print(f"{first_log} , {self.term}")
+        # print(f"{first_log} , {self.term}")
 
         self.init_timeout()
         if self.term > last_log['term']:
@@ -194,16 +190,14 @@ class Node:
                 "term" : self.term,
                 "success" : False
             }
-        print("In follower, sending response2")
         
-        # ---------------------------READD THIS
-        #added these 2 cases
-        # if first_log['lastLogIndex']!=0 and self.local_log[self.prevLogIndex]["term"]!= last_log['lastLogTerm']:
-        #     return {
-        #         "lastLogIndex" : self.prevLogIndex,
-        #         "term" : self.term ,
-        #         "success" : False
-        #     }
+        # added these 2 cases
+        if first_log['lastLogIndex']!=0 and self.local_log[self.prevLogIndex]["term"]!= last_log['lastLogTerm']:
+            return {
+                "lastLogIndex" : self.prevLogIndex,
+                "term" : self.term ,
+                "success" : False
+            }
         
         if last_log['term'] > self.term:
             with self.term_loc:
@@ -212,7 +206,7 @@ class Node:
         
         if self.prevLogIndex > first_log['lastLogIndex']:
             # print(self.local_log)
-            print("in self.prevLogIndex > data['lastLogIndex'], self.prevlog=", self.prevLogIndex)
+            # print("in self.prevLogIndex > data['lastLogIndex'], self.prevlog=", self.prevLogIndex)
             print(f"Follower log index = {self.prevLogIndex} and leader = {first_log['lastLogIndex']}")
             # follower has more entries than leader
             index = -1
@@ -249,7 +243,6 @@ class Node:
         if leader_commit > self.commit_index and leader_commit<=self.prevLogIndex:
             self.commitEntries(leader_commit)
 
-        print("In follower, sending response3")
 
         print("sending true")
         return {
@@ -289,7 +282,7 @@ class Node:
                 "term":self.term,
                 "candidateId":self.my_ip,
                 "lastLogIndex" : self.prevLogIndex,
-                # "lastLogTerm" : 0 if self.local_log[self.prevLogIndex[self.my_ip]-1]
+                "lastLogTerm" : 0 if self.prevLogIndex==-1 else self.local_log[self.prevLogIndex]['term']
             }
             for f_ip in self.node_list:
                 if self.my_ip != f_ip:
@@ -394,7 +387,7 @@ class Node:
                     "term": self.term,
                     "leaderId" : self.current_leader,
                     "lastLogIndex" : self.prevLogIndex,
-                    # "prevLogTerm" : self.local_log[self.prevLogIndex]["term"], 
+                    "prevLogTerm" : 0 if self.prevLogIndex==-1 else self.local_log[self.prevLogIndex]["term"], 
                     "entries" : new_entry,
                     "leaderCommit": self.commit_index
                 }
@@ -451,7 +444,7 @@ class Node:
                 "term": term,
                 "leaderId" : self.current_leader,
                 "lastLogIndex" : self.next_index[i]-1,
-                # "prevLogTerm" : self.local_log[self.next_index[i]-1]["term"],  
+                "prevLogTerm" : 0 if self.next_index[i]==0 else self.local_log[self.next_index[i]-1]["term"],  
                 "entries" : None,
                 # "msg":f"sending message to follower {i}"
                 "leaderCommit":self.commit_index

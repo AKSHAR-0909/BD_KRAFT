@@ -217,6 +217,7 @@ A solution:
 
 
 To do
+
 - broker sends all messages to only one controller, from where it gets routed to leader. If that one controller fails, we need to send it to some other
 - if follower index < leader index, leader has to send the previous entries 
 - in sendCommitMsg, commit the entries into a database
@@ -237,3 +238,9 @@ To do
 - in appendEntriesSend, send heartbeats and list of data object similarly
 - indicator of heartbeat or append entries?
 - in receivemessages (nodes.py), send data?
+
+
+To do after 02 March
+- Broker endpoints
+- commits
+- client, broker management APIs 

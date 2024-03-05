@@ -7,7 +7,7 @@ import uuid
 app=Flask("__name__")
 
 
-time.sleep(20)
+time.sleep(random.randint(20,30))
 brokerHost=socket.gethostbyname(socket.gethostname())
 registerBrokerRecord={
     "brokerHost":brokerHost,
@@ -40,10 +40,10 @@ def createTopics():
         #send new topic info every 10s
         time.sleep(10)
 
-createTopics()
 
 def TopicTemplate(topicName):
     return {"topic_name":f"topic{topicName}"}
+# createTopics()
 
 @app.route("/TopicRecords")
 def TopicRecord():
